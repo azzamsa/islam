@@ -1,0 +1,17 @@
+[package]
+name = "islam"
+description = "Islamic library for Rust"
+version = "0.1.0"
+authors = ["azzamsa <me@azzamsa.com>"]
+edition = "2018"
+keywords = ["salah", "pray", "islam", "hijri"]
+categories = ["date-and-time", "islam"]
+readme = "README.md"
+license = "GPL-3.0-only"
+
+[dependencies]
+chrono = "0.4.19"
+thiserror = "1.0.24"
+
+[dev-dependencies]
+chrono-tz = "0.5"

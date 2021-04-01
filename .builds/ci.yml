@@ -1,0 +1,40 @@
+image: alpine/3.12
+
+packages:
+  - rust
+  - cargo
+
+sources:
+  - https://git.sr.ht/~azzamsa/islam
+
+environment:
+  project: islam
+
+secrets:
+  - f83522b9-1169-4d6a-8456-302240e5440a # ssh
+
+tasks:
+  - test: |
+      cd ${project}
+      cargo test
+      cargo test --examples
+
+  - check_deploy_rules: |
+      cd ${project}
+
+      # is it a master branch?
+      git branch --contains | grep master || echo "Build stopped. Not on master branch"
+      git branch --contains | grep master || complete-build
+
+      # is it a tagged commit?
+      ! git name-rev --name-only --tags HEAD | grep undefined || echo "current commit in not tagged"
+      ! git name-rev --name-only --tags HEAD | grep undefined || complete-build
+
+  - deploy: |
+      cd ${project}
+
+      set +x
+      CRATES_AUTH_TOKEN=$(cat ~/.CRATES_AUTH_TOKEN)
+      cargo login $CRATES_AUTH_TOKEN
+
+      cargo publish
