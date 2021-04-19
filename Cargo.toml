@@ -8,6 +8,7 @@ keywords = ["salah", "pray", "islam", "hijri"]
 categories = ["date-and-time", "command-line-utilities"]
 readme = "README.md"
 license = "GPL-3.0-only"
+repository = "https://git.sr.ht/~azzamsa/islam"
 
 [dependencies]
 chrono = "0.4.19"
