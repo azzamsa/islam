@@ -1,4 +1,4 @@
-#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::module_name_repetitions, clippy::non_ascii_literal)]
 
 use std::usize;
 
@@ -55,29 +55,29 @@ pub struct HijriDate {
 
 impl HijriDate {
     pub fn new(year: i32, month: u32, day: u32) -> Result<Self, HijriError> {
-        if month < 1 || month > 12 {
+        if !(1..=12).contains(&month) {
             return Err(HijriError::InvalidTime(month));
         }
         Ok(Self {
             year,
             month,
             day,
-            month_arabic: HijriDate::month_arabic(month),
-            month_english: HijriDate::month_english(month),
+            month_arabic: Self::month_arabic(month),
+            month_english: Self::month_english(month),
         })
     }
-    pub fn to_julian(self) -> i32 {
+    pub fn to_julian(&self) -> i32 {
         let date = Utc.ymd(self.year, self.month, self.day);
         baselib::hijri_to_julian(date)
     }
-    pub fn to_gregorian(self) -> Date<Utc> {
+    pub fn to_gregorian(&self) -> Date<Utc> {
         let julian = self.to_julian();
         let (year, month, day) = baselib::julian_to_gregorian(julian as f32);
         Utc.ymd(year, month, day)
     }
     pub fn next_date(self) -> Self {
         let julian = self.to_julian();
-        return HijriDate::from_julian(julian + 1, 0);
+        Self::from_julian(julian + 1, 0)
     }
     // NOTE (upstream) never used
     // fn is_last(self) -> bool {
@@ -87,7 +87,7 @@ impl HijriDate {
     //     return false;
     // }
     pub fn today(correction_val: i32) -> Self {
-        return HijriDate::from_gregorian(Utc::today(), correction_val);
+        Self::from_gregorian(Utc::today(), correction_val)
     }
     pub fn from_julian(julian_date: i32, correction_val: i32) -> Self {
         let (year, month, day) = baselib::julian_to_hijri(julian_date, correction_val);
@@ -96,8 +96,8 @@ impl HijriDate {
             year,
             month,
             day,
-            month_arabic: HijriDate::month_arabic(month),
-            month_english: HijriDate::month_english(month),
+            month_arabic: Self::month_arabic(month),
+            month_english: Self::month_english(month),
         }
     }
     fn month_arabic(month: u32) -> String {
@@ -114,8 +114,8 @@ impl HijriDate {
             year,
             month,
             day,
-            month_arabic: HijriDate::month_arabic(month),
-            month_english: HijriDate::month_english(month),
+            month_arabic: Self::month_arabic(month),
+            month_english: Self::month_english(month),
         }
     }
 }

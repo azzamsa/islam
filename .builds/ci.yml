@@ -11,9 +11,13 @@ environment:
   project: islam
 
 secrets:
-  - f83522b9-1169-4d6a-8456-302240e5440a # ssh
+  - 3bb6a4a8-8fdd-4035-b288-dab3dd39f95d # crates.io
 
 tasks:
+  - lint: |
+      cd ${project}
+      find . | grep "\.rs" | xargs touch ; cargo clippy --all-features -- --deny warnings --deny clippy::pedantic --deny clippy::nursery
+
   - test: |
       cd ${project}
       cargo test

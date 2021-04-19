@@ -1,3 +1,5 @@
+#![allow(clippy::unused_self)]
+
 use crate::pray::madhab::Madhab;
 use crate::pray::method::Method;
 
@@ -42,7 +44,7 @@ impl Config {
         self.ishaa_angle = isha;
         self
     }
-    pub fn with(self, method: Method, madhab: Madhab) -> Self {
+    pub fn with(&self, method: Method, madhab: Madhab) -> Self {
         let mut config = method.configs();
         config.madhab = madhab;
         config

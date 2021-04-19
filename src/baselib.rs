@@ -1,5 +1,4 @@
-use std::f32::consts::PI;
-
+#![allow(clippy::many_single_char_names)]
 use chrono::prelude::*;
 use chrono::Date;
 use chrono::Utc;
@@ -7,11 +6,11 @@ use chrono::Utc;
 // Trigonometric functions takes values in degree
 
 pub fn dcos(deg: f32) -> f32 {
-    ((deg * PI) / 180.0).cos()
+    deg.to_radians().cos()
 }
 
 pub fn dsin(deg: f32) -> f32 {
-    ((deg * PI) / 180.0).sin()
+    deg.to_radians().sin()
 }
 
 //  Hijri date calculation methods
@@ -19,21 +18,27 @@ pub fn dsin(deg: f32) -> f32 {
 /// Get equation of time
 pub fn equation_of_time(julian_day: f32) -> f32 {
     let n = julian_day - 2_451_544.5;
-    let g = 357.528 + (0.985_600_3 * n);
-    let c = 1.9148 * dsin(g) + (0.02 * dsin(2.0 * g)) + (0.0003 * dsin(3.0 * g));
-    let lamda = (280.47 + (0.985_600_3 * n)) + c;
-    let r = -2.468 * dsin(2.0 * lamda) + 0.053 * dsin(4.0 * lamda) + 0.0014 * dsin(6.0 * lamda);
-    return (c + r) * 4.0;
+    let g = 0.985_600_3_f32.mul_add(n, 357.528);
+    let c = 0.0003_f32.mul_add(
+        dsin(3.0 * g),
+        1.9148_f32.mul_add(dsin(g), 0.02 * dsin(2.0 * g)),
+    );
+    let lamda = 0.985_600_3_f32.mul_add(n, 280.47) + c;
+    let r = 0.0014_f32.mul_add(
+        dsin(6.0 * lamda),
+        (-2.468_f32).mul_add(dsin(2.0 * lamda), 0.053 * dsin(4.0 * lamda)),
+    );
+    (c + r) * 4.0
 }
 
 pub fn hijri_to_julian(date: Date<Utc>) -> i32 {
-    return ((((11 * date.year() + 3) / 30) as f32).floor()
+    ((((11 * date.year() + 3) / 30) as f32).floor()
         + ((354 * date.year()) as f32).floor()
         + ((30 * date.month()) as f32).floor()
         - (((date.month() - 1) / 2) as f32).floor()
         + date.day() as f32
         + 1_948_440.0
-        - 385.0) as i32;
+        - 385.0) as i32
 }
 
 /// The Julian Day (JD) is a continuous count of days and fractions from the beginning of the year -4712,
@@ -42,8 +47,8 @@ pub fn gregorian_to_julian(dt: Date<Utc>) -> f32 {
     let (day, mut month, mut year) = (dt.day(), dt.month(), dt.year());
 
     if month <= 2 {
-        month = month + 12;
-        year = year - 1;
+        month += 12;
+        year -= 1;
     }
 
     let a = (year as f32 / 100.0).floor() as i32;
@@ -57,20 +62,22 @@ pub fn gregorian_to_julian(dt: Date<Utc>) -> f32 {
         0
     };
 
-    let julian_day = ((365.25 * (year + 4716) as f32).floor() as i32
+    // julian day
+    ((365.25 * (year + 4716) as f32).floor() as i32
         + (30.6 * (month + 1) as f32).floor() as i32
         + day as i32
         + b) as f32
-        - 1524.5;
-    return julian_day;
+        - 1524.5
 }
 
 pub fn julian_to_hijri(julian_day: i32, correction_val: i32) -> (i32, u32, u32) {
     let mut l = ((julian_day as f32 + correction_val as f32).floor() as i32 - 1_948_440) + 10632;
     let n = (((l - 1) / 10631) as f32).floor();
     l = l - (10631_f32 * n) as i32 + 354;
-    let j = ((((10985 - l) / 5316) as f32).floor() * (((50 * l) / 17719) as f32).floor())
-        + ((l / 5670) as f32).floor() * (((43 * l) / 15238) as f32).floor();
+    let j = (((10985 - l) / 5316) as f32).floor().mul_add(
+        (((50 * l) / 17719) as f32).floor(),
+        ((l / 5670) as f32).floor() * (((43 * l) / 15238) as f32).floor(),
+    );
     l = l
         - (((30 - j as i32) / 15) as f32).floor() as i32
             * (((17719 * j as i32) / 50) as f32).floor() as i32
@@ -80,22 +87,22 @@ pub fn julian_to_hijri(julian_day: i32, correction_val: i32) -> (i32, u32, u32) 
 
     let month = (((24 * l) / 709) as f32).floor();
     let day = ((l - ((709_f32 * month) as i32 / 24)) as f32).floor();
-    let year = ((((30_f32 * n) + j) as i32 - 30) as f32).floor();
-    return (year as i32, month as u32, day as u32);
+    let year = ((30_f32.mul_add(n, j) as i32 - 30) as f32).floor();
+
+    (year as i32, month as u32, day as u32)
 }
 
 pub fn julian_to_gregorian(mut julian_day: f32) -> (i32, u32, u32) {
     julian_day = (julian_day as i32 + 5) as f32;
     let z = julian_day.floor() as i32;
     let f = (julian_day as i32 - z) as i32;
-    let a;
 
-    if z < 2_299_161 {
-        a = z as i32;
+    let a = if z < 2_299_161 {
+        z as i32
     } else {
         let alpha = ((z as f32 - 1_867_216.25) / 36524.25).floor();
-        a = ((z as i32 + 1) + alpha as i32) - ((alpha as i32 / 4) as f32).floor() as i32;
-    }
+        ((z as i32 + 1) + alpha as i32) - ((alpha as i32 / 4) as f32).floor() as i32
+    };
 
     let b = a + 1524;
     let c = ((b as f32 - 122.1) / 365.25).floor();
@@ -111,7 +118,7 @@ pub fn julian_to_gregorian(mut julian_day: f32) -> (i32, u32, u32) {
     // Calculate the year
     let year = c as i32 - if month > 2 { 4716 } else { 4715 };
 
-    return (year, month as u32, day as u32);
+    (year, month as u32, day as u32)
 }
 
 #[cfg(test)]
@@ -126,15 +133,15 @@ mod tests {
     }
     #[test]
     fn test_dsin() {
-        assert_eq!(dsin(10.0), 0.1736482);
-        assert_eq!(dsin(20.0), 0.34202015);
+        assert_eq!(dsin(10.0), 0.17364818);
+        assert_eq!(dsin(20.0), 0.34202012);
         assert_eq!(dsin(30.0), 0.5);
     }
     #[test]
     fn test_equation_of_time() {
         assert_eq!(equation_of_time(2436116.31), -11.653772);
-        assert_eq!(equation_of_time(1842713.0), 12.9505825);
-        assert_eq!(equation_of_time(2451545.0), 3.535524);
+        assert_eq!(equation_of_time(1842713.0), 12.964235);
+        assert_eq!(equation_of_time(2451545.0), 3.5355203);
     }
     #[test]
     fn test_hijri_to_julian() {

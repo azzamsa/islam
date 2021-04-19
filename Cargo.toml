@@ -12,6 +12,3 @@ license = "GPL-3.0-only"
 [dependencies]
 chrono = "0.4.19"
 thiserror = "1.0.24"
-
-[dev-dependencies]
-chrono-tz = "0.5"

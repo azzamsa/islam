@@ -12,20 +12,20 @@ pub enum Prayer {
 }
 
 impl Prayer {
-    pub fn name(&self) -> String {
+    pub fn name(self) -> String {
         match self {
-            Prayer::Fajr => "Fajr".to_string(),
-            Prayer::Sherook => "Sherook".to_string(),
-            Prayer::Dohr => {
+            Self::Fajr => "Fajr".to_string(),
+            Self::Sherook => "Sherook".to_string(),
+            Self::Dohr => {
                 if Local::now().weekday() == Weekday::Fri {
                     "Jumua".to_string()
                 } else {
                     "Dohr".to_string()
                 }
             }
-            Prayer::Asr => String::from("Asr"),
-            Prayer::Maghreb => String::from("Maghreb"),
-            Prayer::Ishaa => String::from("Ishaa"),
+            Self::Asr => String::from("Asr"),
+            Self::Maghreb => String::from("Maghreb"),
+            Self::Ishaa => String::from("Ishaa"),
         }
     }
 }
