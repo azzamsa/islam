@@ -1,11 +1,11 @@
 [package]
 name = "islam"
 description = "Islamic library for Rust"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["azzamsa <me@azzamsa.com>"]
 edition = "2018"
 keywords = ["salah", "pray", "islam", "hijri"]
-categories = ["date-and-time", "islam"]
+categories = ["date-and-time", "command-line-utilities"]
 readme = "README.md"
 license = "GPL-3.0-only"
 

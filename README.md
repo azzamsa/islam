@@ -52,8 +52,8 @@ let prayer_times = Prayer::new(jakarta_city)
 First, you need to specify `Location` with `latitude, longitude, timezone` as
 parameters.
 Then choose a calculation method such `Singapore`. Other methods available [in the
-docs](https://docs.rs/islam/0.1.0/islam/pray/method/enum.Method.html#variants).
-There are also `madhab` configurations that you [can choose from](https://docs.rs/islam/0.1.0/islam/pray/madhab/enum.Madhab.html#variants).
+docs](https://docs.rs/islam/0.1.1/islam/pray/method/enum.Method.html#variants).
+There are also `madhab` configurations that you [can choose from](https://docs.rs/islam/0.1.1/islam/pray/madhab/enum.Madhab.html#variants).
 
 ### Getting Hijri Date
 
