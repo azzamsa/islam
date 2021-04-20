@@ -14,3 +14,10 @@
 mod baselib;
 pub mod hijri;
 pub mod pray;
+
+// A convenience module for islam cuonsumer to use
+pub mod chrono {
+    // `.year`, `.day` needs `Datelike`
+    // `.ymd` needs `Timezone`
+    pub use chrono::{Date, DateTime, Datelike, Duration, Local, TimeZone, Timelike, Utc};
+}
