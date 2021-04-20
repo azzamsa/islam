@@ -1,8 +1,8 @@
 use chrono::{Local, TimeZone, Timelike};
-use islam::pray::config::Config;
-use islam::pray::madhab::Madhab;
-use islam::pray::method::Method;
-use islam::pray::times::{Location, PrayerSchedule};
+use islam::pray::Config;
+use islam::pray::Madhab;
+use islam::pray::Method;
+use islam::pray::{Location, PrayerSchedule};
 
 fn main() {
     // GMT+7

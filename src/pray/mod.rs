@@ -1,5 +1,12 @@
-pub mod config;
-pub mod madhab;
-pub mod method;
-pub mod prayer;
-pub mod times;
+mod config;
+mod madhab;
+mod method;
+mod prayer;
+mod times;
+
+// shorter access for library consumer
+pub use config::Config;
+pub use madhab::Madhab;
+pub use method::Method;
+pub use prayer::Prayer;
+pub use times::{Location, PrayerSchedule, PrayerTimes};
