@@ -1,4 +1,4 @@
-use chrono::prelude::*;
+use chrono::{Datelike, TimeZone, Utc};
 use islam::hijri::HijriDate;
 
 fn main() {

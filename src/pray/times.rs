@@ -7,7 +7,7 @@
 
 use std::f32::consts::PI;
 
-use chrono::prelude::*;
+use chrono::{Date, DateTime, Datelike, Local, TimeZone, Utc};
 
 use crate::baselib::{dcos, dsin};
 use crate::pray::config::Config;
@@ -363,6 +363,7 @@ mod tests {
         assert_eq!(prayer_times.sherook, date.and_hms(5, 54, 14));
         assert_eq!(prayer_times.first_third_of_night, date.and_hms(21, 28, 21));
         assert_eq!(prayer_times.midnight, date.and_hms(23, 15, 24));
+        // FIXME: why no zero before minutes
         assert_eq!(prayer_times.last_third_of_night, date.and_hms(1, 2, 28));
     }
     #[test]

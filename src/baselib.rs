@@ -1,7 +1,5 @@
 #![allow(clippy::many_single_char_names)]
-use chrono::prelude::*;
-use chrono::Date;
-use chrono::Utc;
+use chrono::{Date, Datelike, Utc};
 
 // Trigonometric functions takes values in degree
 
@@ -124,6 +122,7 @@ pub fn julian_to_gregorian(mut julian_day: f32) -> (i32, u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::{TimeZone, Utc};
 
     #[test]
     fn test_dcos() {

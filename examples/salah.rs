@@ -1,4 +1,4 @@
-use chrono::prelude::*;
+use chrono::{Local, TimeZone, Timelike};
 use islam::pray::config::Config;
 use islam::pray::madhab::Madhab;
 use islam::pray::method::Method;
