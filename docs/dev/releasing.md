@@ -9,5 +9,5 @@ $ find . | grep "\.rs" | xargs touch ; cargo clippy --all-features -- --deny war
 - Run `cargo update` and review dependency updates.
 - Update the CHANGELOG.
 - Update version numbers in `Cargo.toml` and `README.md`, Run `cargo update -p islam` so that the Cargo.lock is updated.
-- Create new branch (master branch is protected), commit with a message format: `v[0-9]+.[0-9]+.[0-9]+`, and push.
-- Wait for a checks to pass, merge the branch to master, then tag a release with a copy of the relevant section of the CHANGELOG.
+- Create a commit with a message format: `v[0-9]+.[0-9]+.[0-9]+`, and push.
+- Wait for a checks to pass, tag a commit with a release tag, then push the tag.
