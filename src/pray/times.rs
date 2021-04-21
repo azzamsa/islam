@@ -7,7 +7,7 @@
 
 use std::f32::consts::PI;
 
-use chrono::{Date, DateTime, Datelike, Local, TimeZone, Utc};
+use chrono::{Date, DateTime, Datelike, Duration, Local, TimeZone, Utc};
 
 use crate::baselib::{dcos, dsin};
 use crate::pray::config::Config;
@@ -24,6 +24,7 @@ pub struct PrayerTimes {
     pub maghreb: DateTime<Local>,
     pub ishaa: DateTime<Local>,
     pub fajr: DateTime<Local>,
+    pub fajr_tomorrow: DateTime<Local>,
     pub sherook: DateTime<Local>,
     pub first_third_of_night: DateTime<Local>,
     pub midnight: DateTime<Local>,
@@ -63,6 +64,10 @@ impl PrayerTimes {
         let last_third_of_night_time = Self::last_third_of_night(date, location, config);
         let last_third_of_night = Self::hours_to_time(date, last_third_of_night_time, 0.0, config);
 
+        let tomorrow = date + Duration::days(1);
+        let fajr_time_tomorrow = Self::fajr(tomorrow, location, config);
+        let fajr_tomorrow = Self::hours_to_time(tomorrow, fajr_time_tomorrow, 0.0, config);
+
         Self {
             location,
             date,
@@ -76,6 +81,7 @@ impl PrayerTimes {
             first_third_of_night,
             midnight,
             last_third_of_night,
+            fajr_tomorrow,
         }
     }
     fn longitude_difference(location: Location) -> f32 {
@@ -229,35 +235,37 @@ impl PrayerTimes {
         maghreb_time + (2.0 * (24.0 - (maghreb_time - fajr_time)) / 3.0)
     }
     pub fn current(&self) -> Prayer {
-        self.current_time(Local::now()).expect("Out of bounds")
+        self.current_time(Local::now())
     }
-    fn current_time(&self, time: DateTime<Local>) -> Option<Prayer> {
-        // only obligatory prayer
-        let current_prayer: Option<Prayer> = {
-            if self.ishaa.signed_duration_since(time).num_seconds() <= 0 {
-                Some(Prayer::Ishaa)
-            } else if self.maghreb.signed_duration_since(time).num_seconds() <= 0 {
-                Some(Prayer::Maghreb)
-            } else if self.asr.signed_duration_since(time).num_seconds() <= 0 {
-                Some(Prayer::Asr)
-            } else if self.dohr.signed_duration_since(time).num_seconds() <= 0 {
-                Some(Prayer::Dohr)
-            } else if self.fajr.signed_duration_since(time).num_seconds() <= 0 {
-                Some(Prayer::Fajr)
-            } else {
-                None
+    fn current_time(&self, time: DateTime<Local>) -> Prayer {
+        // dummy value. it will replaced below
+        // just to avoid using `Option` or `Err`
+        let mut current_prayer = Prayer::Dohr;
+
+        let ranges = vec![
+            // fajr, fajr_range
+            (Prayer::Fajr, self.fajr..self.sherook),
+            (Prayer::Sherook, self.sherook..self.dohr),
+            (Prayer::Dohr, self.dohr..self.asr),
+            (Prayer::Asr, self.asr..self.maghreb),
+            (Prayer::Maghreb, self.maghreb..self.ishaa),
+            (Prayer::Ishaa, self.ishaa..self.fajr_tomorrow),
+        ];
+        for (prayer, range) in ranges {
+            if range.contains(&time) {
+                current_prayer = prayer;
             }
-        };
+        }
         current_prayer
     }
     pub fn next(&self) -> Prayer {
         match self.current() {
-            Prayer::Fajr => Prayer::Dohr,
+            Prayer::Fajr => Prayer::Sherook,
+            Prayer::Sherook => Prayer::Dohr,
             Prayer::Dohr => Prayer::Asr,
             Prayer::Asr => Prayer::Maghreb,
             Prayer::Maghreb => Prayer::Ishaa,
             Prayer::Ishaa => Prayer::Fajr,
-            _ => Prayer::Fajr,
         }
     }
     pub fn time(&self, prayer: Prayer) -> DateTime<Local> {
@@ -410,7 +418,7 @@ mod tests {
         let times = PrayerTimes::new(date, jakarta_city, config);
         let current_prayer_time = date.and_hms(11, 52, 0);
 
-        assert_eq!(times.current_time(current_prayer_time), Some(Prayer::Dohr));
+        assert_eq!(times.current_time(current_prayer_time), Prayer::Dohr);
     }
     #[test]
     fn current_prayer_is_asr() {
@@ -422,7 +430,7 @@ mod tests {
         let times = PrayerTimes::new(date, jakarta_city, config);
         let current_prayer_time = date.and_hms(15, 13, 0);
 
-        assert_eq!(times.current_time(current_prayer_time), Some(Prayer::Asr));
+        assert_eq!(times.current_time(current_prayer_time), Prayer::Asr);
     }
     #[test]
     fn current_prayer_is_maghreb() {
@@ -434,10 +442,7 @@ mod tests {
         let times = PrayerTimes::new(date, jakarta_city, config);
         let current_prayer_time = date.and_hms(17, 51, 0);
 
-        assert_eq!(
-            times.current_time(current_prayer_time),
-            Some(Prayer::Maghreb)
-        );
+        assert_eq!(times.current_time(current_prayer_time), Prayer::Maghreb);
     }
     #[test]
     fn current_prayer_is_ishaa() {
@@ -449,7 +454,7 @@ mod tests {
         let times = PrayerTimes::new(date, jakarta_city, config);
         let current_prayer_time = date.and_hms(19, 01, 0);
 
-        assert_eq!(times.current_time(current_prayer_time), Some(Prayer::Ishaa));
+        assert_eq!(times.current_time(current_prayer_time), Prayer::Ishaa);
     }
     #[test]
     fn current_prayer_is_fajr() {
@@ -461,11 +466,10 @@ mod tests {
         let times = PrayerTimes::new(date, jakarta_city, config);
         let current_prayer_time = date.and_hms(4, 35, 0);
 
-        assert_eq!(times.current_time(current_prayer_time), Some(Prayer::Fajr));
+        assert_eq!(times.current_time(current_prayer_time), Prayer::Fajr);
     }
     #[test]
-    fn current_prayer_is_none() {
-        // FIXME this should be None
+    fn current_prayer_is_sherook() {
         let timezone = 7;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
@@ -473,11 +477,10 @@ mod tests {
         let times = PrayerTimes::new(date, jakarta_city, config);
         let current_prayer_time = date.and_hms(8, 0, 0);
 
-        assert_eq!(times.current_time(current_prayer_time), Some(Prayer::Fajr));
+        assert_eq!(times.current_time(current_prayer_time), Prayer::Sherook);
     }
     #[test]
     fn next_prayer_is_dohr() {
-        // FIXME this should be None
         let timezone = 7;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
@@ -485,6 +488,7 @@ mod tests {
         let times = PrayerTimes::new(date, jakarta_city, config);
         let current_prayer_time = date.and_hms(8, 0, 0);
 
-        assert_eq!(times.current_time(current_prayer_time), Some(Prayer::Fajr));
+        // assert_eq!(times.current_time(current_prayer_time), Prayer::Sherook);
+        assert_eq!(times.next(), Prayer::Dohr);
     }
 }
