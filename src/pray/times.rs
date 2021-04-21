@@ -479,16 +479,4 @@ mod tests {
 
         assert_eq!(times.current_time(current_prayer_time), Prayer::Sherook);
     }
-    #[test]
-    fn next_prayer_is_dohr() {
-        let timezone = 7;
-        let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
-        let date = Local.ymd(2021, 4, 19);
-        let times = PrayerTimes::new(date, jakarta_city, config);
-        let current_prayer_time = date.and_hms(8, 0, 0);
-
-        // assert_eq!(times.current_time(current_prayer_time), Prayer::Sherook);
-        assert_eq!(times.next(), Prayer::Dohr);
-    }
 }
