@@ -371,8 +371,7 @@ mod tests {
         assert_eq!(prayer_times.sherook, date.and_hms(5, 54, 14));
         assert_eq!(prayer_times.first_third_of_night, date.and_hms(21, 28, 21));
         assert_eq!(prayer_times.midnight, date.and_hms(23, 15, 24));
-        // FIXME: why no zero before minutes
-        assert_eq!(prayer_times.last_third_of_night, date.and_hms(1, 2, 28));
+        assert_eq!(prayer_times.last_third_of_night, date.and_hms(1, 02, 28));
     }
     #[test]
     fn praytimes_jakarta_umm_alqura() {
