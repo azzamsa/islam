@@ -78,13 +78,6 @@ impl HijriDate {
         let julian = self.to_julian();
         Self::from_julian(julian + 1, 0)
     }
-    // NOTE (upstream) never used
-    // fn is_last(self) -> bool {
-    //     if self.month != self.next_date().month {
-    //         return true;
-    //     }
-    //     return false;
-    // }
     pub fn today(correction_val: i32) -> Self {
         Self::from_gregorian(Utc::today(), correction_val)
     }
