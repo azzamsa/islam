@@ -73,12 +73,14 @@ To learn more, see other [examples](examples/).
 
 ## Contributing
 
-For reporting issues, visit the tracker here: https://todo.sr.ht/~azzamsa/islam
+Please send patches and questions to my [public-inbox][lists] mailing list.
 
-Please send patches to `~azzamsa/public-inbox@lists.sr.ht`
+Bugs and Todo here: https://todo.sr.ht/~azzamsa/islam
 
 ## Acknowledgement
 
 The calculation part of this library is a direct port of
 [PyIslam](https://github.com/abougouffa/pyIslam) with a slight change in the API
 part. The API took inspiration from [salah](https://github.com/insha/salah)
+
+[lists]: https://lists.sr.ht/~azzamsa/public-inbox
