@@ -69,19 +69,19 @@ impl PrayerTimes {
         let fajr_tomorrow = Self::hours_to_time(tomorrow, fajr_time_tomorrow, 0.0, config);
 
         Self {
-            location,
             date,
+            location,
             config,
             dohr,
             asr,
             maghreb,
             ishaa,
             fajr,
+            fajr_tomorrow,
             sherook,
             first_third_of_night,
             midnight,
             last_third_of_night,
-            fajr_tomorrow,
         }
     }
     fn longitude_difference(location: Location) -> f32 {

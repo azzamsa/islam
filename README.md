@@ -1,8 +1,8 @@
 <div align="center">
 <h1>islam</h1>
 
-<a href="https://builds.sr.ht/~azzamsa/islam?">
-<img src="https://builds.sr.ht/~azzamsa/islam.svg">
+<a href="https://github.com/azzamsa/islam/workflows/ci.yml">
+<img src="https://github.com/azzamsa/islam/workflows/ci/badge.svg">
 </a>
 <a href="https://crates.io/crates/islam">
 <img src="https://img.shields.io/crates/v/islam.svg">
@@ -71,16 +71,9 @@ println!(
 
 To learn more, see other [examples](examples/).
 
-## Contributing
-
-Please send patches and questions to my [public-inbox][lists] mailing list.
-
-Bugs and Todo here: https://todo.sr.ht/~azzamsa/islam
 
 ## Acknowledgement
 
 The calculation part of this library is a direct port of
 [PyIslam](https://github.com/abougouffa/pyIslam) with a slight change in the API
 part. The API took inspiration from [salah](https://github.com/insha/salah)
-
-[lists]: https://lists.sr.ht/~azzamsa/public-inbox
