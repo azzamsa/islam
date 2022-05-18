@@ -138,9 +138,13 @@ mod tests {
     }
     #[test]
     fn test_equation_of_time() {
+        let precision = 5;
+
         assert_eq!(equation_of_time(2436116.31), -11.653772);
         assert_eq!(equation_of_time(1842713.0), 12.964235);
-        assert_eq!(equation_of_time(2451545.0), 3.5355206);
+
+        let equation = equation_of_time(2451545.0);
+        assert_eq!(format!("{:.1$}", equation, precision), "3.53552");
     }
     #[test]
     fn test_hijri_to_julian() {
