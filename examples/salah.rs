@@ -8,7 +8,7 @@ fn main() {
     // GMT+7
     let timezone = 7;
     // https://www.mapcoordinates.net/en
-    let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+    let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32, timezone);
     let date = Local.ymd(2021, 4, 9);
     let config = Config::new().with(Method::Singapore, Madhab::Shafi);
     let prayer_times = PrayerSchedule::new(jakarta_city)

@@ -4,7 +4,7 @@ use islam::hijri::HijriDate;
 fn main() {
     let hijri_date = HijriDate::new(1442, 8, 25).unwrap();
     let tomorrow = hijri_date.clone().next_date();
-    let gregorian = hijri_date.clone().to_gregorian();
+    let gregorian = hijri_date.to_gregorian();
     let from_gregorian = HijriDate::from_gregorian(Utc.ymd(2021, 4, 9), 0);
     let from_julian = HijriDate::from_julian(2459313, 0);
 

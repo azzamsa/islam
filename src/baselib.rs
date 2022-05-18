@@ -140,7 +140,7 @@ mod tests {
     fn test_equation_of_time() {
         assert_eq!(equation_of_time(2436116.31), -11.653772);
         assert_eq!(equation_of_time(1842713.0), 12.964235);
-        assert_eq!(equation_of_time(2451545.0), 3.5355203);
+        assert_eq!(equation_of_time(2451545.0), 3.5355206);
     }
     #[test]
     fn test_hijri_to_julian() {

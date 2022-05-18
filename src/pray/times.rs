@@ -366,12 +366,12 @@ mod tests {
         assert_eq!(prayer_times.dohr, date.and_hms(11, 54, 14));
         assert_eq!(prayer_times.asr, date.and_hms(15, 12, 14));
         assert_eq!(prayer_times.maghreb, date.and_hms(17, 54, 14));
-        assert_eq!(prayer_times.ishaa, date.and_hms(19, 03, 49));
+        assert_eq!(prayer_times.ishaa, date.and_hms(19, 3, 49));
         assert_eq!(prayer_times.fajr, date.and_hms(4, 36, 34));
         assert_eq!(prayer_times.sherook, date.and_hms(5, 54, 14));
         assert_eq!(prayer_times.first_third_of_night, date.and_hms(21, 28, 21));
         assert_eq!(prayer_times.midnight, date.and_hms(23, 15, 24));
-        assert_eq!(prayer_times.last_third_of_night, date.and_hms(1, 02, 28));
+        assert_eq!(prayer_times.last_third_of_night, date.and_hms(1, 2, 28));
     }
     #[test]
     fn praytimes_jakarta_umm_alqura() {
@@ -403,7 +403,7 @@ mod tests {
 
         assert_eq!(prayer_times.ishaa, date.and_hms(19, 24, 14));
         assert_eq!(prayer_times.fajr, date.and_hms(4, 38, 36));
-        assert_eq!(prayer_times.first_third_of_night, date.and_hms(21, 29, 01));
+        assert_eq!(prayer_times.first_third_of_night, date.and_hms(21, 29, 1));
         assert_eq!(prayer_times.midnight, date.and_hms(23, 16, 25));
         assert_eq!(prayer_times.last_third_of_night, date.and_hms(1, 3, 49));
     }
@@ -451,7 +451,7 @@ mod tests {
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
         let date = Local.ymd(2021, 4, 19);
         let times = PrayerTimes::new(date, jakarta_city, config);
-        let current_prayer_time = date.and_hms(19, 01, 0);
+        let current_prayer_time = date.and_hms(19, 1, 0);
 
         assert_eq!(times.current_time(current_prayer_time), Prayer::Ishaa);
     }
