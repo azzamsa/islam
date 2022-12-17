@@ -1,14 +1,14 @@
 [package]
 name = "islam"
-description = "Islamic library for Rust"
 version = "0.1.5"
 authors = ["azzamsa <me@azzamsa.com>"]
-edition = "2018"
-keywords = ["salah", "pray", "islam", "hijri"]
 categories = ["date-and-time", "science"]
-readme = "README.md"
+edition = "2021"
+keywords = ["salah", "pray", "islam", "hijri"]
 license = "GPL-3.0-only"
+readme = "README.md"
 repository = "https://github.com/azzamsa/islam"
+description = "Islamic library for Rust"
 
 [dependencies]
 chrono = "0.4.19"

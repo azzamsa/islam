@@ -1,20 +1,69 @@
-name: release
+name: Release
 
 on:
   push:
     tags:
-    - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v*'
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
+  release:
+    name: Release
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
+      - name: Checkout source code
+        uses: actions/checkout@v3
 
-      - name: Publish to crates.io
-        uses: katyo/publish-crates@v1
+      - name: Extract crate information
+        shell: bash
+        run: |
+          echo "PROJECT_NAME=islam" >> $GITHUB_ENV
+          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+
+      - name: Install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          components: clippy, rustfmt
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Create tarball
+        id: package
+        run: |
+          PKG_suffix=".tar.gz"
+          PKG_BASENAME=${PROJECT_NAME}-v${PROJECT_VERSION}
+          PKG_NAME=${PKG_BASENAME}${PKG_suffix}
+          echo ::set-output name=PKG_NAME::${PKG_NAME}
+
+          PKG_STAGING="/tmp/package"
+          ARCHIVE_DIR="${PKG_STAGING}/${PKG_BASENAME}/"
+          mkdir -p "${ARCHIVE_DIR}"
+
+          # Source
+          cp -r "src" "$ARCHIVE_DIR"
+          # README, LICENSE and CHANGELOG files
+          cp "README.md" "LICENSE" "CHANGELOG.md" "$ARCHIVE_DIR"
+
+          # Compress
+          pushd "${PKG_STAGING}/" >/dev/null
+          tar czf "${PKG_NAME}" "${PKG_BASENAME}"/
+          popd >/dev/null
+
+          # Let subsequent steps know where to find the compressed package
+          echo ::set-output name=PKG_PATH::"${PKG_STAGING}/${PKG_NAME}"
+
+      - name: Get CHANGELOG.md entry
+        id: changelog_reader
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ steps.tag.outputs.current_version }}
+          path: ./CHANGELOG.md
+
+      - name: Release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GH_TOKEN }}
+          file: ${{ steps.package.outputs.PKG_PATH }}
+          tag: ${{ github.ref }}
+          asset_name: ${{ steps.package.outputs.PKG_NAME }}
+          body: ${{ steps.changelog_reader.outputs.log_entry }}

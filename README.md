@@ -17,7 +17,7 @@
 
 ---
 
-*islam* is an Islamic library for Rust.
+_islam_ is an Islamic library for Rust.
 It is a direct port of [PyIslam](https://github.com/abougouffa/pyIslam) with a slight change in the API part.
 
 ## Why?
@@ -36,7 +36,7 @@ So here it is, `islam` is born!
 
 ### Getting Prayer Times
 
-``` rust
+```rust
 // GMT+7
 let timezone = 7;
 // https://www.mapcoordinates.net/en
@@ -51,13 +51,12 @@ let prayer_times = Prayer::new(jakarta_city)
 
 First, you need to specify `Location` with `latitude, longitude, timezone` as
 parameters.
-Then choose a calculation method such `Singapore`. Other methods available [in the
-docs](https://docs.rs/islam/0.1.3/islam/pray/method/enum.Method.html#variants).
+Then choose a calculation method such `Singapore`. Other methods available [in thedocs](https://docs.rs/islam/0.1.3/islam/pray/method/enum.Method.html#variants).
 There are also `madhab` configurations that you [can choose from](https://docs.rs/islam/0.1.3/islam/pray/madhab/enum.Madhab.html#variants).
 
 ### Getting Hijri Date
 
-``` rust
+```rust
 let from_gregorian = HijriDate::from_gregorian(Local.ymd(2021, 4, 9), 0);
 println!(
         "From gregorian: {}-{}-{}",
@@ -70,7 +69,6 @@ println!(
 ## More Examples
 
 To learn more, see other [examples](examples/).
-
 
 ## Acknowledgement
 
