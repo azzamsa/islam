@@ -1,20 +1,17 @@
-use chrono::{Local, TimeZone, Timelike};
-use islam::pray::Config;
-use islam::pray::Madhab;
-use islam::pray::Method;
-use islam::pray::{Location, PrayerSchedule};
+use islam::pray::{error::Error, Config, Location, Madhab, Method, PrayerSchedule};
+use time::macros::date;
 
-fn main() {
+fn example() -> Result<(), Error> {
     // GMT+7
     let timezone = 7;
     // https://www.mapcoordinates.net/en
     let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32, timezone);
-    let date = Local.ymd(2021, 4, 9);
+    let date = date!(2022 - 12 - 18);
     let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-    let prayer_times = PrayerSchedule::new(jakarta_city)
+    let prayer_times = PrayerSchedule::new(jakarta_city)?
         .on(date)
         .with_config(config)
-        .calculate();
+        .calculate()?;
 
     let fajr = prayer_times.fajr;
     println!("fajr: {}:{}:{}", fajr.hour(), fajr.minute(), fajr.second());
@@ -48,4 +45,12 @@ fn main() {
         ishaa.minute(),
         ishaa.second()
     );
+
+    Ok(())
+}
+
+fn main() {
+    if let Err(err) = example() {
+        eprintln!("Error: {:?}", err);
+    }
 }

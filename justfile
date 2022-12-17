@@ -4,6 +4,7 @@ shebang := if os() == 'windows' { 'powershell.exe' } else { '/usr/bin/sh' }
 
 alias d := dev
 alias t := test
+alias l := lint
 
 # List available commands.
 _default:
@@ -37,12 +38,11 @@ _lint_doc:
 
 # Lint the codebase.
 lint:
-    cargo clippy
+    cargo clippy --all-targets --tests
 
 # Test the codebase.
 test:
-    cargo test --doc
-    cargo nextest run
+    cargo test --all-targets -- --test-threads 1
 
 # Tasks to make the code-base comply with the rules. Mostly used in git hooks.
 comply: fmt lint _lint_doc test

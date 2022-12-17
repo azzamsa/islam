@@ -1,11 +1,11 @@
-use chrono::{Datelike, TimeZone, Utc};
-use islam::hijri::HijriDate;
+use islam::hijri::{HijriDate, HijriError};
+use time::macros::date;
 
-fn main() {
-    let hijri_date = HijriDate::new(1442, 8, 25).unwrap();
-    let tomorrow = hijri_date.clone().next_date();
-    let gregorian = hijri_date.to_gregorian();
-    let from_gregorian = HijriDate::from_gregorian(Utc.ymd(2021, 4, 9), 0);
+fn example() -> Result<(), HijriError> {
+    let hijri_date = HijriDate::new(1442, 8, 25)?;
+    let tomorrow = hijri_date.clone().next_date()?;
+    let gregorian = hijri_date.to_gregorian()?;
+    let from_gregorian = HijriDate::from_gregorian(date!(2021 - 4 - 9), 0);
     let from_julian = HijriDate::from_julian(2459313, 0);
 
     println!(
@@ -38,4 +38,12 @@ fn main() {
         "From julian: {}-{}-{}",
         from_julian.year, from_julian.month, from_julian.day,
     );
+
+    Ok(())
+}
+
+fn main() {
+    if let Err(err) = example() {
+        eprintln!("Error: {:?}", err);
+    }
 }

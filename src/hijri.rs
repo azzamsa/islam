@@ -1,9 +1,5 @@
-#![allow(clippy::module_name_repetitions, clippy::non_ascii_literal)]
-
-use std::usize;
-
-use chrono::{Date, TimeZone, Utc};
 use thiserror::Error;
+use time::{Date, Month, OffsetDateTime};
 
 use crate::baselib;
 
@@ -39,23 +35,32 @@ const ENGLISH_MONTHS: [&str; 12] = [
 
 #[derive(Error, Debug, PartialEq)]
 pub enum HijriError {
+    #[error("No such month: {0:?}")]
+    InvalidMonth(u8),
+
     #[error("No such time: {0:?}")]
-    InvalidTime(u32),
+    InvalidTime(String),
+}
+
+impl std::convert::From<time::error::ComponentRange> for HijriError {
+    fn from(err: time::error::ComponentRange) -> Self {
+        Self::InvalidTime(err.to_string())
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct HijriDate {
-    pub day: u32,
-    pub month: u32,
+    pub year: i32,
+    pub month: u8,
     pub month_arabic: String,
     pub month_english: String,
-    pub year: i32,
+    pub day: u8,
 }
 
 impl HijriDate {
-    pub fn new(year: i32, month: u32, day: u32) -> Result<Self, HijriError> {
+    pub fn new(year: i32, month: u8, day: u8) -> Result<Self, HijriError> {
         if !(1..=12).contains(&month) {
-            return Err(HijriError::InvalidTime(month));
+            return Err(HijriError::InvalidMonth(month));
         }
         Ok(Self {
             year,
@@ -65,21 +70,24 @@ impl HijriDate {
             month_english: Self::month_english(month),
         })
     }
-    pub fn to_julian(&self) -> i32 {
-        let date = Utc.ymd(self.year, self.month, self.day);
-        baselib::hijri_to_julian(date)
+    pub fn to_julian(&self) -> Result<i32, HijriError> {
+        let month = Month::try_from(self.month)?;
+        let date = Date::from_calendar_date(self.year, month, self.day)?;
+        Ok(baselib::hijri_to_julian(date))
     }
-    pub fn to_gregorian(&self) -> Date<Utc> {
-        let julian = self.to_julian();
+    pub fn to_gregorian(&self) -> Result<Date, HijriError> {
+        let julian = self.to_julian()?;
         let (year, month, day) = baselib::julian_to_gregorian(julian as f32);
-        Utc.ymd(year, month, day)
+        let month = Month::try_from(month)?;
+        Ok(Date::from_calendar_date(year, month, day)?)
     }
-    pub fn next_date(self) -> Self {
-        let julian = self.to_julian();
-        Self::from_julian(julian + 1, 0)
+    pub fn next_date(self) -> Result<Self, HijriError> {
+        let julian = self.to_julian()?;
+        Ok(Self::from_julian(julian + 1, 0))
     }
     pub fn today(correction_val: i32) -> Self {
-        Self::from_gregorian(Utc::today(), correction_val)
+        let today = OffsetDateTime::now_utc().date();
+        Self::from_gregorian(today, correction_val)
     }
     pub fn from_julian(julian_date: i32, correction_val: i32) -> Self {
         let (year, month, day) = baselib::julian_to_hijri(julian_date, correction_val);
@@ -92,13 +100,13 @@ impl HijriDate {
             month_english: Self::month_english(month),
         }
     }
-    fn month_arabic(month: u32) -> String {
+    fn month_arabic(month: u8) -> String {
         ARABIC_MONTHS[(month - 1) as usize].to_string()
     }
-    fn month_english(month: u32) -> String {
+    fn month_english(month: u8) -> String {
         ENGLISH_MONTHS[(month - 1) as usize].to_string()
     }
-    pub fn from_gregorian(date: Date<Utc>, correction_val: i32) -> Self {
+    pub fn from_gregorian(date: Date, correction_val: i32) -> Self {
         let (year, month, day) =
             baselib::julian_to_hijri(baselib::gregorian_to_julian(date) as i32, correction_val);
 
@@ -115,92 +123,103 @@ impl HijriDate {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use time::macros::date;
 
     #[test]
-    fn hijri() {
-        let hijri_date = HijriDate::new(1442, 8, 25).unwrap();
+    fn hijri() -> Result<(), HijriError> {
+        let hijri_date = HijriDate::new(1442, 8, 25)?;
         assert_eq!(hijri_date.day, 25);
         assert_eq!(hijri_date.month, 8);
         assert_eq!(hijri_date.year, 1442);
+        Ok(())
     }
     #[test]
-    fn tomorrow() {
-        let hijri_date = HijriDate::new(1442, 8, 25).unwrap();
-        let tomorrow = hijri_date.next_date();
+    fn tomorrow() -> Result<(), HijriError> {
+        let hijri_date = HijriDate::new(1442, 8, 25)?;
+        let tomorrow = hijri_date.next_date()?;
         assert_eq!(tomorrow.day, 26);
         assert_eq!(tomorrow.month, 8);
         assert_eq!(tomorrow.year, 1442);
-    }
-
-    #[test]
-    fn to_gregorian() {
-        let hijri_date = HijriDate::new(1442, 8, 25).unwrap();
-        let gregorian = hijri_date.to_gregorian();
-        assert_eq!(gregorian, Utc.ymd(2021, 4, 13));
+        Ok(())
     }
     #[test]
-    fn from_gregorian() {
-        let hijri_from_gregorian = HijriDate::from_gregorian(Utc.ymd(2021, 4, 9), 0);
+    fn to_gregorian() -> Result<(), HijriError> {
+        let hijri_date = HijriDate::new(1442, 8, 25)?;
+        let gregorian = hijri_date.to_gregorian()?;
+        assert_eq!(gregorian, date!(2021 - 4 - 13));
+        Ok(())
+    }
+    #[test]
+    fn from_gregorian() -> Result<(), HijriError> {
+        let hijri_from_gregorian = HijriDate::from_gregorian(date!(2021 - 4 - 9), 0);
         assert_eq!(hijri_from_gregorian.day, 25); // FIXME: this should be 27
         assert_eq!(hijri_from_gregorian.month, 8);
         assert_eq!(hijri_from_gregorian.month_arabic, "شعبان".to_string());
         assert_eq!(hijri_from_gregorian.month_english, "Shaban".to_string());
         assert_eq!(hijri_from_gregorian.year, 1442);
+        Ok(())
     }
     #[test]
-    fn from_gregorian_1() {
-        let hijri_from_gregorian = HijriDate::from_gregorian(Utc.ymd(2020, 4, 18), 0);
+    fn from_gregorian_1() -> Result<(), HijriError> {
+        let hijri_from_gregorian = HijriDate::from_gregorian(date!(2020 - 4 - 18), 0);
         // tested against https://www.islamicfinder.org/islamic-calendar/2021/April/?type=Gregorian
         assert_eq!(hijri_from_gregorian.day, 23); // FIXME: this should be 25
         assert_eq!(hijri_from_gregorian.month, 8);
         assert_eq!(hijri_from_gregorian.month_english, "Shaban".to_string());
         assert_eq!(hijri_from_gregorian.year, 1441);
+        Ok(())
     }
     #[test]
-    fn from_julian() {
+    fn from_julian() -> Result<(), HijriError> {
         let hijri_from_julian = HijriDate::from_julian(2459313, 0);
         assert_eq!(hijri_from_julian.day, 25);
         assert_eq!(hijri_from_julian.month, 8);
         assert_eq!(hijri_from_julian.month_arabic, "شعبان".to_string());
         assert_eq!(hijri_from_julian.month_english, "Shaban".to_string());
         assert_eq!(hijri_from_julian.year, 1442);
+        Ok(())
     }
     #[test]
-    fn min_month() {
-        let hijri_date = HijriDate::new(1442, 1, 25).unwrap();
+    fn min_month() -> Result<(), HijriError> {
+        let hijri_date = HijriDate::new(1442, 1, 25)?;
         assert_eq!(hijri_date.month_arabic, "محرم".to_string());
         assert_eq!(hijri_date.month_english, "Moharram".to_string());
+        Ok(())
     }
     #[test]
-    fn max_month() {
-        let hijri_date = HijriDate::new(1442, 12, 25).unwrap();
+    fn max_month() -> Result<(), HijriError> {
+        let hijri_date = HijriDate::new(1442, 12, 25)?;
         assert_eq!(hijri_date.month_arabic, "ذو الحجة".to_string());
         assert_eq!(hijri_date.month_english, "Delhijja".to_string());
+        Ok(())
     }
     #[test]
-    fn out_of_index_month() {
+    fn out_of_index_month() -> Result<(), HijriError> {
         let err = HijriDate::new(1442, 13, 25).unwrap_err().to_string();
-        assert_eq!(err, "No such time: 13");
+        assert_eq!(err, "No such month: 13");
 
         let err = HijriDate::new(1442, 0, 25).unwrap_err().to_string();
-        assert_eq!(err, "No such time: 0");
+        assert_eq!(err, "No such month: 0");
+        Ok(())
     }
     #[test]
-    fn min_year() {
-        let hijri_date = HijriDate::new(1, 1, 1).unwrap();
+    fn min_year() -> Result<(), HijriError> {
+        let hijri_date = HijriDate::new(1, 1, 1)?;
         assert_eq!(hijri_date.day, 1);
         assert_eq!(hijri_date.month, 1);
         assert_eq!(hijri_date.year, 1);
         assert_eq!(hijri_date.month_arabic, "محرم".to_string());
         assert_eq!(hijri_date.month_english, "Moharram".to_string());
+        Ok(())
     }
     #[test]
-    fn max_year() {
-        let hijri_date = HijriDate::new(2000, 1, 1).unwrap();
+    fn max_year() -> Result<(), HijriError> {
+        let hijri_date = HijriDate::new(2000, 1, 1)?;
         assert_eq!(hijri_date.day, 1);
         assert_eq!(hijri_date.month, 1);
         assert_eq!(hijri_date.year, 2000);
         assert_eq!(hijri_date.month_arabic, "محرم".to_string());
         assert_eq!(hijri_date.month_english, "Moharram".to_string());
+        Ok(())
     }
 }

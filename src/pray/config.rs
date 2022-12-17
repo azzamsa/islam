@@ -1,7 +1,4 @@
-#![allow(clippy::unused_self)]
-
-use crate::pray::madhab::Madhab;
-use crate::pray::method::Method;
+use crate::pray::{madhab::Madhab, method::Method};
 
 #[derive(Debug, Copy, Clone)]
 pub struct IshaInterval {
@@ -23,6 +20,12 @@ pub struct Config {
     pub isha_interval: IshaInterval,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Config {
     pub fn new() -> Self {
         Self {
@@ -38,12 +41,6 @@ impl Config {
             },
         }
     }
-    /// Fajr and Ishaa angle
-    pub fn angle(mut self, fajr: f32, isha: f32) -> Self {
-        self.fajr_angle = fajr;
-        self.ishaa_angle = isha;
-        self
-    }
     pub fn with(&self, method: Method, madhab: Madhab) -> Self {
         let mut config = method.configs();
         config.madhab = madhab;
@@ -51,6 +48,12 @@ impl Config {
     }
     pub fn method(mut self, method: Method) -> Self {
         self.method = method;
+        self
+    }
+    /// Fajr and Ishaa angle
+    pub fn angle(mut self, fajr: f32, isha: f32) -> Self {
+        self.fajr_angle = fajr;
+        self.ishaa_angle = isha;
         self
     }
     pub fn is_summer(mut self, is_summer: bool) -> Self {
