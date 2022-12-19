@@ -7,7 +7,7 @@
 <a href="https://crates.io/crates/islam">
 <img src="https://img.shields.io/crates/v/islam.svg">
 </a>
-<a href=" https://docs.rs/islam/">
+<a href="https://docs.rs/islam/">
 <img src="https://docs.rs/islam/badge.svg">
 </a>
 
