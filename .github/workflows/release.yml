@@ -52,13 +52,6 @@ jobs:
           # Let subsequent steps know where to find the compressed package
           echo ::set-output name=PKG_PATH::"${PKG_STAGING}/${PKG_NAME}"
 
-      - name: Get CHANGELOG.md entry
-        id: changelog_reader
-        uses: mindsers/changelog-reader-action@v2
-        with:
-          version: ${{ steps.tag.outputs.current_version }}
-          path: ./CHANGELOG.md
-
       - name: Release
         uses: svenstaro/upload-release-action@v2
         with:
