@@ -33,7 +33,7 @@ jobs:
           PKG_suffix=".tar.gz"
           PKG_BASENAME=${PROJECT_NAME}-v${PROJECT_VERSION}
           PKG_NAME=${PKG_BASENAME}${PKG_suffix}
-          echo ::set-output name=PKG_NAME::${PKG_NAME}
+          echo "PKG_NAME=${PKG_NAME}" >> $GITHUB_OUTPUT
 
           PKG_STAGING="/tmp/package"
           ARCHIVE_DIR="${PKG_STAGING}/${PKG_BASENAME}/"
@@ -50,7 +50,7 @@ jobs:
           popd >/dev/null
 
           # Let subsequent steps know where to find the compressed package
-          echo ::set-output name=PKG_PATH::"${PKG_STAGING}/${PKG_NAME}"
+          echo "PKG_PATH=${PKG_STAGING}/${PKG_NAME}" >> $GITHUB_OUTPUT
 
       - name: Release
         uses: svenstaro/upload-release-action@v2
