@@ -37,28 +37,28 @@ So here it is, `islam` is born!
 ### Getting Prayer Times
 
 ```rust
-// GMT+7
-let timezone = 7;
-// https://www.mapcoordinates.net/en
-let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
-let date = Local.ymd(2021, 4, 9);
-let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-let prayer_times = Prayer::new(jakarta_city)
-    .on(date)
-    .with_config(config)
-    .calculate();
+    // GMT+7
+    let timezone = 7;
+    // https://www.mapcoordinates.net/en
+    let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32, timezone);
+    let date = date!(2022 - 12 - 18);
+    let config = Config::new().with(Method::Singapore, Madhab::Shafi);
+    let prayer_times = PrayerSchedule::new(jakarta_city)?
+        .on(date)
+        .with_config(config)
+        .calculate()?;
 ```
 
 First, you need to specify `Location` with `latitude, longitude, timezone` as
 parameters.
-Then choose a calculation method such `Singapore`. Other methods available [in thedocs](https://docs.rs/islam/0.1.3/islam/pray/method/enum.Method.html#variants).
-There are also `madhab` configurations that you [can choose from](https://docs.rs/islam/0.1.3/islam/pray/madhab/enum.Madhab.html#variants).
+Then choose a calculation method such `Singapore`. Other methods available [in the docs](https://docs.rs/islam/latest/islam/pray/method/enum.Method.html#variants).
+There are also `madhab` configurations that you [can choose from](https://docs.rs/islam/latest/islam/pray/madhab/enum.Madhab.html#variants).
 
 ### Getting Hijri Date
 
 ```rust
-let from_gregorian = HijriDate::from_gregorian(Local.ymd(2021, 4, 9), 0);
-println!(
+    let from_gregorian = HijriDate::from_gregorian(date!(2021 - 4 - 9), 0);
+    println!(
         "From gregorian: {}-{}-{}",
         from_gregorian.year, from_gregorian.month, from_gregorian.day,
     );
