@@ -28,14 +28,14 @@ jobs:
         with:
           tool: dprint
 
-      - name: Cache
+      - name: Rust cache
         uses: Swatinem/rust-cache@v2
 
       - name: Show version information
         shell: bash
         run: |
           just -V
-          dprint -V
+          dprint --version
 
       - name: Ensure `fmt` has been run
         run:  just fmt-check
