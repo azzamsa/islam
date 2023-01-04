@@ -26,7 +26,6 @@ jobs:
         shell: bash
         run: |
           echo "PROJECT_NAME=islam" >> $GITHUB_ENV
-          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
 
       - name: Install rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -40,7 +39,7 @@ jobs:
         id: package
         run: |
           PKG_suffix=".tar.gz"
-          PKG_BASENAME=${PROJECT_NAME}-v${PROJECT_VERSION}
+          PKG_BASENAME=${PROJECT_NAME}-${RELEASE_VERSION}
           PKG_NAME=${PKG_BASENAME}${PKG_suffix}
           echo "PKG_NAME=${PKG_NAME}" >> $GITHUB_OUTPUT
 
