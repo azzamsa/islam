@@ -33,25 +33,25 @@ impl Prayer {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn prayer_name() -> Result<(), Error> {
-//         assert_eq!(Prayer::Fajr.name()?, "Fajr");
-//         assert_eq!(Prayer::Sherook.name()?, "Sherook");
+    #[test]
+    fn prayer_name() -> Result<(), Error> {
+        assert_eq!(Prayer::Fajr.name()?, "Fajr");
+        assert_eq!(Prayer::Sherook.name()?, "Sherook");
 
-//         if today()?.weekday() == Weekday::Friday {
-//             assert_eq!(Prayer::Dohr.name()?, "Jumua");
-//         } else {
-//             assert_eq!(Prayer::Dohr.name()?, "Dohr");
-//         }
+        if today()?.weekday() == Weekday::Friday {
+            assert_eq!(Prayer::Dohr.name()?, "Jumua");
+        } else {
+            assert_eq!(Prayer::Dohr.name()?, "Dohr");
+        }
 
-//         assert_eq!(Prayer::Asr.name()?, "Asr");
-//         assert_eq!(Prayer::Maghreb.name()?, "Maghreb");
-//         assert_eq!(Prayer::Ishaa.name()?, "Ishaa");
+        assert_eq!(Prayer::Asr.name()?, "Asr");
+        assert_eq!(Prayer::Maghreb.name()?, "Maghreb");
+        assert_eq!(Prayer::Ishaa.name()?, "Ishaa");
 
-//         Ok(())
-//     }
-// }
+        Ok(())
+    }
+}
