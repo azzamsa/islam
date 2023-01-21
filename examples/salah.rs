@@ -1,5 +1,5 @@
 use islam::pray::{error::Error, Config, Location, Madhab, Method, PrayerSchedule};
-use time::macros::date;
+use time::{format_description, macros::date};
 
 fn example() -> Result<(), Error> {
     // GMT+7
@@ -45,6 +45,19 @@ fn example() -> Result<(), Error> {
         ishaa.minute(),
         ishaa.second()
     );
+
+    let current_prayer = prayer_times.current()?;
+    let (hour, minute) = prayer_times.time_remaining()?;
+    println!("\nCurent Prayer");
+    println!("{}: ({}:{})", current_prayer.name()?, hour, minute);
+
+    let next_prayer = prayer_times.next()?;
+    let time = prayer_times.time(next_prayer);
+    let format = format_description::parse("[hour]:[minute]").unwrap();
+    let time = time.format(&format).unwrap();
+
+    println!("\nNext Prayer");
+    println!("{}: ({})", next_prayer.name()?, time);
 
     Ok(())
 }
