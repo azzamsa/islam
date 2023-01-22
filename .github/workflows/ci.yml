@@ -54,6 +54,11 @@ jobs:
       - name: Install latest just release
         uses: taiki-e/install-action@just
 
+      - name: Change Timezone
+        run: |
+          sudo timedatectl set-timezone Asia/Jakarta
+          timedatectl status
+
       - name: Run tests
         run: just test
 
