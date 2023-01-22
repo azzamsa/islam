@@ -1,15 +1,13 @@
 use islam::pray::{error::Error, Config, Location, Madhab, Method, PrayerSchedule};
-use time::{format_description, macros::date};
+use time::{format_description, OffsetDateTime};
 
 fn example() -> Result<(), Error> {
-    // GMT+7
-    let timezone = 7;
     // https://www.mapcoordinates.net/en
-    let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32, timezone);
-    let date = date!(2022 - 12 - 18);
-    let config = Config::new().with(Method::Singapore, Madhab::Shafi);
+    let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32);
+    let today = OffsetDateTime::now_local()?.date();
+    let config = Config::new().with(Method::Egyptian, Madhab::Shafi);
     let prayer_times = PrayerSchedule::new(jakarta_city)?
-        .on(date)
+        .on(today)
         .with_config(config)
         .calculate()?;
 

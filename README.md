@@ -37,20 +37,17 @@ So here it is, `islam` is born!
 ### Getting Prayer Times
 
 ```rust
-// GMT+7
-let timezone = 7;
 // https://www.mapcoordinates.net/en
-let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32, timezone);
-let date = date!(2022 - 12 - 18);
+let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32);
+let today = OffsetDateTime::now_local()?.date();
 let config = Config::new().with(Method::Singapore, Madhab::Shafi);
 let prayer_times = PrayerSchedule::new(jakarta_city)?
-    .on(date)
+    .on(today)
     .with_config(config)
     .calculate()?;
 ```
 
-First, you need to specify `Location` with `latitude, longitude, timezone` as
-parameters.
+First, you need to specify `Location` with `latitude`, and `longitude` as parameters.
 Then choose a calculation method such `Singapore`. Other methods available [in the docs](https://docs.rs/islam/latest/islam/pray/method/enum.Method.html#variants).
 There are also `madhab` configurations that you [can choose from](https://docs.rs/islam/latest/islam/pray/madhab/enum.Madhab.html#variants).
 

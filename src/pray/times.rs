@@ -1,7 +1,6 @@
 use std::f32::consts::PI;
 
-use time::macros::offset;
-use time::{Date, Duration, OffsetDateTime};
+use time::{Date, Duration, OffsetDateTime, UtcOffset};
 
 use crate::{
     baselib::{self, dcos, dsin},
@@ -18,16 +17,13 @@ pub struct Location {
     latitude: f32,
     /// geographical longitude of the given location
     longitude: f32,
-    /// the time zone GMT(+/-timezone)
-    timezone: i32,
 }
 
 impl Location {
-    pub fn new(latitude: f32, longitude: f32, timezone: i32) -> Self {
+    pub fn new(latitude: f32, longitude: f32) -> Self {
         Self {
             latitude,
             longitude,
-            timezone,
         }
     }
 }
@@ -80,7 +76,9 @@ pub struct PrayerTimes {
 
 impl PrayerTimes {
     pub fn new(date: Date, location: Location, config: Config) -> Result<Self, Error> {
-        let date = date.with_hms(0, 0, 0)?.assume_offset(offset!(UTC));
+        let date = date
+            .with_hms(0, 0, 0)?
+            .assume_offset(UtcOffset::current_local_offset()?);
 
         // dohr time must be calculated at first, every other time depends on it!
         let dohr_time = Self::dohr(date, location)?;
@@ -133,7 +131,7 @@ impl PrayerTimes {
     }
     /// Get the Dohr
     fn dohr(date: OffsetDateTime, location: Location) -> Result<f32, Error> {
-        let longitude_difference = Self::longitude_difference(location);
+        let longitude_difference = Self::longitude_difference(location)?;
 
         let julian_day = baselib::gregorian_to_julian(Self::to_naive_date(date)?);
         let time_equation = baselib::equation_of_time(julian_day);
@@ -239,11 +237,13 @@ impl PrayerTimes {
         let hours = (hours + is_summer as f32).floor() % 24.0;
         Ok(Self::to_naive_date(date)?
             .with_hms(hours as u8, minutes.floor() as u8, seconds.floor() as u8)?
-            .assume_offset(offset!(UTC)))
+            .assume_offset(UtcOffset::current_local_offset()?))
     }
-    fn longitude_difference(location: Location) -> f32 {
-        let middle_longitude = location.timezone as f32 * 15.0;
-        (middle_longitude - location.longitude) / 15.0
+    fn longitude_difference(location: Location) -> Result<f32, Error> {
+        let local_offset = UtcOffset::current_local_offset()?;
+        let timezone = local_offset.whole_hours();
+        let middle_longitude = timezone as f32 * 15.0;
+        Ok((middle_longitude - location.longitude) / 15.0)
     }
     /// Get the angle angle for asr (according to choosen madhab)
     fn asr_angle(date: OffsetDateTime, location: Location, config: Config) -> Result<f32, Error> {
@@ -275,8 +275,8 @@ impl PrayerTimes {
     /// Remaining time to next prayer
     pub fn time_remaining(&self) -> Result<(u32, u32), Error> {
         let next_prayer_time = self.time(self.next()?);
-        let now: OffsetDateTime = OffsetDateTime::now_utc();
-        let now_to_next = now - next_prayer_time;
+        let now: OffsetDateTime = OffsetDateTime::now_local()?;
+        let now_to_next = next_prayer_time - now;
         let now_to_next = now_to_next.whole_seconds() as f64;
 
         let whole: f64 = now_to_next / 60.0 / 60.0;
@@ -358,17 +358,14 @@ mod tests {
     ) -> Result<OffsetDateTime, Error> {
         Ok(date
             .with_hms(hour, minute, second)?
-            .assume_offset(offset!(UTC)))
+            .assume_offset(UtcOffset::current_local_offset()?))
     }
     #[test]
+    /// Tested against https://www.jadwalsholat.org/
+    /// and the result is extremely accurate
     fn praytimes_jakarta() -> Result<(), Error> {
-        // tested against https://www.jadwalsholat.org/
-        // and the result is extremely accurate
-
-        // GMT+7
-        let timezone = 7;
         // https://www.mapcoordinates.net/en
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
         let date = date!(2021 - 4 - 9);
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let prayer_times = PrayerSchedule::new(jakarta_city)?
@@ -396,8 +393,7 @@ mod tests {
     }
     #[test]
     fn praytimes_jakarta_umm_alqura() -> Result<(), Error> {
-        let timezone = 7;
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
         let date = date!(2021 - 4 - 9);
         let config = Config::new().with(Method::UmmAlQura, Madhab::Shafi);
         let prayer_times = PrayerSchedule::new(jakarta_city)?
@@ -421,8 +417,7 @@ mod tests {
     }
     #[test]
     fn praytimes_jakarta_fixed_interval() -> Result<(), Error> {
-        let timezone = 7;
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
         let date = date!(2021 - 4 - 9);
         let config = Config::new().with(Method::FixedInterval, Madhab::Shafi);
         let prayer_times = PrayerSchedule::new(jakarta_city)?
@@ -447,9 +442,9 @@ mod tests {
     #[test]
     fn current_prayer_is_dohr() -> Result<(), Error> {
         // Dohr is: 2021-04-19T11:51:45+07:00
-        let timezone = 7;
+
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
         let date = date!(2021 - 4 - 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
         let current_prayer_time = to_offset_datetime(date, 11, 52, 0)?;
@@ -460,9 +455,9 @@ mod tests {
     #[test]
     fn current_prayer_is_asr() -> Result<(), Error> {
         // Asr is: 2021-04-19T15:11:51+07:00
-        let timezone = 7;
+
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
         let date = date!(2021 - 4 - 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
         let current_prayer_time = to_offset_datetime(date, 15, 13, 0)?;
@@ -473,9 +468,9 @@ mod tests {
     #[test]
     fn current_prayer_is_maghreb() -> Result<(), Error> {
         // Maghreb is: 2021-04-19T17:50:12+07:00
-        let timezone = 7;
+
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
         let date = date!(2021 - 4 - 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
         let current_prayer_time = to_offset_datetime(date, 17, 51, 0)?;
@@ -486,9 +481,9 @@ mod tests {
     #[test]
     fn current_prayer_is_ishaa() -> Result<(), Error> {
         // Ishaa is: 2021-04-19T19:00:27+07:00
-        let timezone = 7;
+
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
         let date = date!(2021 - 4 - 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
         let current_prayer_time = to_offset_datetime(date, 19, 1, 0)?;
@@ -499,9 +494,9 @@ mod tests {
     #[test]
     fn current_prayer_is_fajr() -> Result<(), Error> {
         // Fajr is: 2021-04-19T04:34:54+07:00,
-        let timezone = 7;
+
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
         let date = date!(2021 - 4 - 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
         let current_prayer_time = to_offset_datetime(date, 4, 35, 0)?;
@@ -511,9 +506,8 @@ mod tests {
     }
     #[test]
     fn current_prayer_is_sherook() -> Result<(), Error> {
-        let timezone = 7;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32, timezone);
+        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
         let date = date!(2021 - 4 - 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
         let current_prayer_time = to_offset_datetime(date, 8, 0, 0)?;
