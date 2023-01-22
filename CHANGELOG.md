@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2023-01-22
+
+### Bug fixes
+
+- User doesn't need to pass UTC offset anymore ([e29c32e](e29c32e2bbea3b7eb62cf134ba58a247f851b8c5))
+  - **BREAKING!** ⚠️ : `time` has a feature to get the UTC offset from the user's
+    system. Passing the offset to the app is redundant.
+
 ## [0.1.5] - 2022-05-18
 
 ### Bug fixes
