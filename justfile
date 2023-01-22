@@ -13,7 +13,6 @@ _default:
 # Setup the repository.
 setup:
     git cliff --version || cargo install --locked git-cliff
-    cargo nextest --version || cargo install --locked cargo-nextest
     cargo-set-version --help || cargo install --locked cargo-edit
     cargo watch --version || cargo install --locked cargo-watch
     dprint --version || cargo install --locked dprint
