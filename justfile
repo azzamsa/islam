@@ -1,7 +1,5 @@
 #!/usr/bin/env -S just --justfile
 
-shebang := if os() == 'windows' { 'powershell.exe' } else { '/usr/bin/sh' }
-
 alias d := dev
 alias t := test
 alias l := lint
@@ -10,16 +8,13 @@ alias l := lint
 _default:
     just --list --unsorted
 
-# Setup the repository.
-setup:
-    git cliff --version || cargo install --locked git-cliff
-    cargo-set-version --help || cargo install --locked cargo-edit
-    cargo watch --version || cargo install --locked cargo-watch
-    dprint --version || cargo install --locked dprint
+# Setup the development tools.
+_setup-dev:
+    cargo install --locked cargo-nextest git-cliff cargo-watch dprint cargo-edit cargo-outdated spacer
 
 # Develop the app.
 dev:
-    cargo watch -x 'clippy --all-targets --all-features'
+    cargo watch -x 'clippy --all-targets --all-features' | spacer
 
 # Format the codebase.
 fmt:
@@ -39,9 +34,13 @@ _lint_doc:
 lint:
     cargo clippy --all-targets --tests
 
+_unit-test:
+    cargo nextest run --lib
+
 # Test the codebase.
-test:
-    cargo test --all-targets -- --test-threads 1
+test: _unit-test
+    cargo test --doc
+    cargo nextest run
 
 # Tasks to make the code-base comply with the rules. Mostly used in git hooks.
 comply: fmt lint _lint_doc test
@@ -53,16 +52,35 @@ check: fmt-check lint test
 doc:
     cargo doc --open
 
-# Create a new release. Example `just release v2.2.0`
-release version:
-    bash scripts/release.sh {{ version }}
+release-check level:
+    cargo-release release {{ level }}
+
+# Create a new release. Example `cargo-release release minor --tag-name v0.2.0`
+release level:
+    cargo-release release {{ level }} --execute
+
+_prepare-release version:
+    git-cliff --config configs/cliff.toml --output CHANGELOG.md --tag {{ version }}
+    just fmt
 
 # Check dependencies health. Pass `--write` to uppgrade dependencies.
+[unix]
 up arg="":
-    #!{{ shebang }}
+    #!/usr/bin/env bash
     if [ "{{ arg }}" = "--write" ]; then
-    	cargo upgrade
-    	cargo update
+        cargo upgrade
+        cargo update
     else
-        cargo outdated
+        cargo outdated --root-deps-only
     fi;
+
+[windows]
+up arg="":
+    #!powershell.exe
+    if ( "{{ arg }}" -eq "--write") {
+        cargo upgrade
+        cargo update
+    }
+    else {
+        cargo outdated --root-deps-only
+    }
