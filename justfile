@@ -52,12 +52,14 @@ check: fmt-check lint test
 doc:
     cargo doc --open
 
-release-check level:
-    cargo-release release {{ level }}
-
 # Create a new release. Example `cargo-release release minor --tag-name v0.2.0`
 release level:
     cargo-release release {{ level }} --execute
+
+# Make sure the repo is ready for release
+_release-check level:
+    just up
+    cargo-release release {{ level }}
 
 _prepare-release version:
     git-cliff --config configs/cliff.toml --output CHANGELOG.md --tag {{ version }}

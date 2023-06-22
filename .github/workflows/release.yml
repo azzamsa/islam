@@ -6,8 +6,51 @@ on:
       - 'v*'
 
 jobs:
-  release:
-    name: Release
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          # it is a must!
+          fetch-depth: 0
+
+      - name: Set the release version
+        shell: bash
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF:11}" >> $GITHUB_ENV
+          echo ${{ env.RELEASE_VERSION }}
+
+      - name: Checkout current tag
+        shell: bash
+        run: |
+          git checkout ${{ env.RELEASE_VERSION }}
+
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v2
+        id: git-cliff
+        with:
+          config: configs/cliff.toml
+          args: -vv --strip header --current 
+        env:
+          OUTPUT: CHANGELOG.md.tmp
+
+      - name: Print the changelog
+        run: cat "${{ steps.git-cliff.outputs.changelog }}"
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          name: "v${{ env.RELEASE_VERSION }}"
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
+          generate_release_notes: true
+          body_path: "${{ steps.git-cliff.outputs.changelog }}"
+
+  publish:
+    name: Publish
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout source code
@@ -31,9 +74,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
 
       - name: Create tarball
         id: package
@@ -61,10 +101,10 @@ jobs:
           echo "PKG_PATH=${PKG_STAGING}/${PKG_NAME}" >> $GITHUB_OUTPUT
 
       - name: Release
-        uses: svenstaro/upload-release-action@v2
+        uses: softprops/action-gh-release@v1
         with:
-          repo_token: ${{ secrets.GH_TOKEN }}
-          file: ${{ steps.package.outputs.PKG_PATH }}
-          tag: ${{ github.ref }}
-          asset_name: ${{ steps.package.outputs.PKG_NAME }}
-          release_name: "v${{ env.RELEASE_VERSION }}"
+          token: ${{ secrets.GH_TOKEN }}
+          name: "v${{ env.RELEASE_VERSION }}"
+          files: ${{ steps.package.outputs.PKG_NAME }}
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
+          generate_release_notes: false
