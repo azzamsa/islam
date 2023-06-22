@@ -26,7 +26,7 @@ jobs:
       - name: Checkout current tag
         shell: bash
         run: |
-          git checkout ${{ env.RELEASE_VERSION }}
+          git checkout v${{ env.RELEASE_VERSION }}
 
       - name: Generate a changelog
         uses: orhun/git-cliff-action@v2
