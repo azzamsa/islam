@@ -73,7 +73,7 @@ pub struct PrayerTimes {
 
 impl PrayerTimes {
     pub fn new(date: Date, location: Location, config: Config) -> Result<Self, crate::Error> {
-        let date = date.and_hms_opt(0, 0, 0).unwrap();
+        let date = date.and_hms_opt(0, 0, 0).ok_or(crate::Error::InvalidTime)?;
 
         // dohr time must be calculated at first, every other time depends on it!
         let dohr_time = Self::dohr(date, location)?;
@@ -230,9 +230,9 @@ impl PrayerTimes {
         let minute = (hour - (hour).floor()) * 60.0;
         let second = (minute - (minute).floor()) * 60.0;
         let hour = (hour + is_summer as f32).floor() % 24.0;
-        Ok(time::date(date.year(), date.month(), date.day())?
+        time::date(date.year(), date.month(), date.day())?
             .and_hms_opt(hour as u32, minute as u32, second as u32)
-            .unwrap())
+            .ok_or(crate::Error::InvalidTime)
     }
     fn longitude_difference(location: Location) -> Result<f32, crate::Error> {
         let offset_second = Local::now().offset().local_minus_utc();
@@ -361,7 +361,8 @@ mod tests {
     }
     fn expected_time(hour: u32, minute: u32, second: u32) -> Result<DateTime, crate::Error> {
         let date = date()?;
-        Ok(date.and_hms_opt(hour, minute, second).unwrap())
+        date.and_hms_opt(hour, minute, second)
+            .ok_or(crate::Error::InvalidTime)
     }
     fn expected_time_with_date(
         date: Date,
@@ -369,7 +370,8 @@ mod tests {
         minute: u32,
         second: u32,
     ) -> Result<DateTime, crate::Error> {
-        Ok(date.and_hms_opt(hour, minute, second).unwrap())
+        date.and_hms_opt(hour, minute, second)
+            .ok_or(crate::Error::InvalidTime)
     }
     #[test]
     /// Tested against https://www.jadwalsholat.org/
