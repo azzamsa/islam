@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::{baselib, time, LocalDate};
+use crate::{baselib, time, Date};
 
 const ARABIC_MONTHS: [&str; 12] = [
     "محرم",
@@ -67,7 +67,7 @@ impl HijriDate {
         let date = time::date(self.year, self.month, self.day);
         Ok(baselib::hijri_to_julian(date))
     }
-    pub fn to_gregorian(&self) -> Result<LocalDate, HijriError> {
+    pub fn to_gregorian(&self) -> Result<Date, HijriError> {
         let julian = self.to_julian()?;
         let (year, month, day) = baselib::julian_to_gregorian(julian as f32);
         Ok(time::date(year, month, day))
@@ -96,7 +96,7 @@ impl HijriDate {
     fn month_english(month: u32) -> String {
         ENGLISH_MONTHS[(month - 1) as usize].to_string()
     }
-    pub fn from_gregorian(date: LocalDate, correction_val: i32) -> Self {
+    pub fn from_gregorian(date: Date, correction_val: i32) -> Self {
         let (year, month, day) =
             baselib::julian_to_hijri(baselib::gregorian_to_julian(date) as i32, correction_val);
 

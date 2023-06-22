@@ -1,15 +1,15 @@
-use chrono::{Local, TimeZone};
+use chrono::{Local, NaiveDate};
 
-use crate::{LocalDate, LocalDateTime};
+use crate::{Date, DateTime};
 
-pub fn now() -> LocalDateTime {
-    Local::now()
+pub fn now() -> DateTime {
+    Local::now().naive_local()
 }
 
-pub fn today() -> LocalDate {
-    Local::now().date()
+pub fn today() -> Date {
+    Local::now().date_naive()
 }
 
-pub fn date(year: i32, month: u32, day: u32) -> LocalDate {
-    Local.ymd(year, month, day)
+pub fn date(year: i32, month: u32, day: u32) -> Date {
+    NaiveDate::from_ymd_opt(year, month, day).unwrap()
 }

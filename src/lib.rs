@@ -5,5 +5,6 @@ pub mod hijri;
 pub mod pray;
 pub mod time;
 
-type LocalDate = chrono::Date<chrono::Local>;
-type LocalDateTime = chrono::DateTime<chrono::Local>;
+// Use internal type. Chrono API changes very often
+type Date = chrono::NaiveDate;
+type DateTime = chrono::NaiveDateTime;

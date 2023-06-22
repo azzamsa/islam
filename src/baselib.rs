@@ -1,5 +1,5 @@
-use crate::LocalDate;
-use chrono::{Datelike};
+use crate::Date;
+use chrono::Datelike;
 
 // Trigonometric functions takes values in degree
 pub fn dcos(deg: f32) -> f32 {
@@ -28,7 +28,7 @@ pub fn equation_of_time(julian_day: f32) -> f32 {
     (c + r) * 4.0
 }
 
-pub fn hijri_to_julian(date: LocalDate) -> i32 {
+pub fn hijri_to_julian(date: Date) -> i32 {
     ((((11 * date.year() + 3) / 30) as f32).floor()
         + ((354 * date.year()) as f32).floor()
         + ((30 * date.month() as u8) as f32).floor()
@@ -40,7 +40,7 @@ pub fn hijri_to_julian(date: LocalDate) -> i32 {
 
 /// The Julian Day (JD) is a continuous count of days and fractions from the beginning of the year -4712,
 /// I begins at Greenwich mean noon (12h Universal Time)
-pub fn gregorian_to_julian(dt: LocalDate) -> f32 {
+pub fn gregorian_to_julian(dt: Date) -> f32 {
     let (day, mut month, mut year) = (dt.day(), dt.month() as u8, dt.year());
 
     if month <= 2 {

@@ -8,7 +8,7 @@ fn example() -> Result<(), Error> {
     let config = Config::new().with(Method::Egyptian, Madhab::Shafi);
     // Tested against https://www.jadwalsholat.org/
     let prayer_times = PrayerSchedule::new(jakarta_city)?
-        .on(Local::today())
+        .on(Local::now().date_naive())
         .with_config(config)
         .calculate()?;
 
