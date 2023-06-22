@@ -15,5 +15,6 @@ chrono = "0.4.19"
 thiserror = "1.0"
 
 [package.metadata.release]
+tag-message = "For details, see the CHANGELOG.md"
 pre-release-commit-message = "v{{version}}"
 pre-release-hook = ["just", "_prepare-release", "{{version}}"]
