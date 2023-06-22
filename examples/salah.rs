@@ -48,11 +48,13 @@ fn example() -> Result<(), islam::Error> {
     let current_prayer = prayer_times.current()?;
     let (hour, minute) = prayer_times.time_remaining()?;
     println!("\nCurrent Prayer");
-    println!("{}: {:02}:{:02}", current_prayer.name()?, hour, minute);
+    println!("{}: ({:02}:{:02})", current_prayer.name()?, hour, minute);
 
     println!("\nNext Prayer");
     let next_prayer = prayer_times.next()?;
-    println!("{}", next_prayer.name()?);
+    let time = prayer_times.time(next_prayer);
+    let time = time.format("%H:%M").to_string();
+    println!("{}: ({})", next_prayer.name()?, time);
 
     Ok(())
 }
