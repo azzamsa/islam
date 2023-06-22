@@ -2,11 +2,9 @@ use std::f32::consts::PI;
 
 use chrono::{Datelike, Duration, Local};
 
-use super::error::Error;
 use crate::{
-    baselib::{self, dcos, dsin},
-    hijri::HijriDate,
-    pray::{config::Config, prayer::Prayer},
+    hijri::{cal, HijriDate},
+    salah::{config::Config, prayer::Prayer},
     time, Date, DateTime,
 };
 
@@ -35,7 +33,7 @@ pub struct PrayerSchedule {
 }
 
 impl PrayerSchedule {
-    pub fn new(location: Location) -> Result<Self, Error> {
+    pub fn new(location: Location) -> Result<Self, crate::Error> {
         Ok(Self {
             location,
             date: time::today(),
@@ -51,7 +49,7 @@ impl PrayerSchedule {
         self.config = config;
         self
     }
-    pub fn calculate(&self) -> Result<PrayerTimes, Error> {
+    pub fn calculate(&self) -> Result<PrayerTimes, crate::Error> {
         PrayerTimes::new(self.date, self.location, self.config)
     }
 }
@@ -74,7 +72,7 @@ pub struct PrayerTimes {
 }
 
 impl PrayerTimes {
-    pub fn new(date: Date, location: Location, config: Config) -> Result<Self, Error> {
+    pub fn new(date: Date, location: Location, config: Config) -> Result<Self, crate::Error> {
         let date = date.and_hms_opt(0, 0, 0).unwrap();
 
         // dohr time must be calculated at first, every other time depends on it!
@@ -127,28 +125,28 @@ impl PrayerTimes {
         })
     }
     /// Get the Dohr
-    fn dohr(date: DateTime, location: Location) -> Result<f32, Error> {
+    fn dohr(date: DateTime, location: Location) -> Result<f32, crate::Error> {
         let longitude_difference = Self::longitude_difference(location)?;
 
-        let julian_day = baselib::gregorian_to_julian(date.date());
-        let time_equation = baselib::equation_of_time(julian_day);
+        let julian_day = cal::gregorian_to_julian(date.date());
+        let time_equation = cal::equation_of_time(julian_day);
         Ok((12.0 + longitude_difference) + (time_equation / 60.0))
     }
     /// Get the Asr time
-    fn asr(date: DateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn asr(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(date, location)?;
         let angle = Self::asr_angle(date, location, config)?;
         Ok(dohr_time + Self::time_for_angle(angle, date, location)?)
     }
     /// Get the Maghreb time
-    fn maghreb(date: DateTime, location: Location, _config: Config) -> Result<f32, Error> {
+    fn maghreb(date: DateTime, location: Location, _config: Config) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(date, location)?;
 
         let angle = 90.83333; // constants
         Ok(dohr_time + Self::time_for_angle(angle, date, location)?)
     }
     /// Get the Ishaa time
-    fn ishaa(date: DateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn ishaa(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(date, location)?;
 
         // checking one of `all_year` or `ramadan` is enough
@@ -174,7 +172,7 @@ impl PrayerTimes {
         }
     }
     /// Get the Fajr time
-    fn fajr(date: DateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn fajr(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(date, location)?;
         // NOTE (upstream) wrong if-else?
         // let angle = if config.method == Method::FixedInterval {
@@ -186,7 +184,7 @@ impl PrayerTimes {
         Ok(dohr_time - Self::time_for_angle(angle, date, location)?)
     }
     /// Get the Sherook time
-    fn sherook(date: DateTime, location: Location, _config: Config) -> Result<f32, Error> {
+    fn sherook(date: DateTime, location: Location, _config: Config) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(date, location)?;
 
         let angle = 90.83333;
@@ -197,14 +195,14 @@ impl PrayerTimes {
         date: DateTime,
         location: Location,
         config: Config,
-    ) -> Result<f32, Error> {
+    ) -> Result<f32, crate::Error> {
         let maghreb_time = Self::maghreb(date, location, config)?;
         let fajr_time = Self::fajr(date, location, config)?;
         Ok(maghreb_time + (24.0 - (maghreb_time - fajr_time)) / 3.0)
     }
     /// Midnight is the exact time between sunrise (Shorook) and sunset (Maghreb),
     /// It defines usually the end of Ishaa time
-    fn midnight(date: DateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn midnight(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
         let maghreb_time = Self::maghreb(date, location, config)?;
         let fajr_time = Self::fajr(date, location, config)?;
         Ok(maghreb_time + (24.0 - (maghreb_time - fajr_time)) / 2.0)
@@ -214,7 +212,7 @@ impl PrayerTimes {
         date: DateTime,
         location: Location,
         config: Config,
-    ) -> Result<f32, Error> {
+    ) -> Result<f32, crate::Error> {
         let maghreb_time = Self::maghreb(date, location, config)?;
 
         let fajr_time = Self::fajr(date, location, config)?;
@@ -226,50 +224,53 @@ impl PrayerTimes {
         val: f32,
         shift: f32,
         config: Config,
-    ) -> Result<DateTime, Error> {
+    ) -> Result<DateTime, crate::Error> {
         let is_summer = i32::from(config.is_summer);
         let hour = val + (shift / 3600.0);
         let minute = (hour - (hour).floor()) * 60.0;
         let second = (minute - (minute).floor()) * 60.0;
         let hour = (hour + is_summer as f32).floor() % 24.0;
-        Ok(time::date(date.year(), date.month(), date.day())
+        Ok(time::date(date.year(), date.month(), date.day())?
             .and_hms_opt(hour as u32, minute as u32, second as u32)
             .unwrap())
     }
-    fn longitude_difference(location: Location) -> Result<f32, Error> {
+    fn longitude_difference(location: Location) -> Result<f32, crate::Error> {
         let offset_second = Local::now().offset().local_minus_utc();
         let offset_hour = Duration::seconds(offset_second.into()).num_hours();
         let middle_longitude = offset_hour as f32 * 15.0;
         Ok((middle_longitude - location.longitude) / 15.0)
     }
     /// Get the angle angle for asr (according to choosen madhab)
-    fn asr_angle(date: DateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn asr_angle(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
         let delta = Self::sun_declination(date)?;
-        let x = dsin(location.latitude).mul_add(dsin(delta), dcos(location.latitude) * dcos(delta));
+        let x = cal::dsin(location.latitude).mul_add(
+            cal::dsin(delta),
+            cal::dcos(location.latitude) * cal::dcos(delta),
+        );
         let a = (x / (-x).mul_add(x, 1.0).sqrt()).atan();
         let x = config.madhab as i32 as f32 + (1.0 / (a).tan());
         Ok(90.0 - (180.0 / PI) * 2.0_f32.mul_add((1.0_f32).atan(), (x).atan()))
     }
     /// Get Times for "Fajr, Sherook, Asr, Maghreb, ishaa"
-    fn time_for_angle(angle: f32, date: DateTime, location: Location) -> Result<f32, Error> {
+    fn time_for_angle(angle: f32, date: DateTime, location: Location) -> Result<f32, crate::Error> {
         let delta = Self::sun_declination(date)?;
-        let s = (dcos(angle) - dsin(location.latitude) * dsin(delta))
-            / (dcos(location.latitude) * dcos(delta));
+        let s = (cal::dcos(angle) - cal::dsin(location.latitude) * cal::dsin(delta))
+            / (cal::dcos(location.latitude) * cal::dcos(delta));
         Ok((180.0 / PI * ((-s / (-s).mul_add(s, 1.0).sqrt()).atan() + PI / 2.0)) / 15.0)
     }
     /// Get sun declination
-    fn sun_declination(date: DateTime) -> Result<f32, Error> {
-        let julian_day = baselib::gregorian_to_julian(date.date());
+    fn sun_declination(date: DateTime) -> Result<f32, crate::Error> {
+        let julian_day = cal::gregorian_to_julian(date.date());
         let n = julian_day - 2_451_544.5;
         let epsilon = 23.44 - (0.000_000_4 * n);
         let l = 0.985_647_4_f32.mul_add(n, 280.466);
         let g = 0.985_600_3_f32.mul_add(n, 357.528);
-        let lamda = 0.02_f32.mul_add(dsin(2.0 * g), 1.915_f32.mul_add(dsin(g), l));
-        let x = dsin(epsilon) * dsin(lamda);
+        let lamda = 0.02_f32.mul_add(cal::dsin(2.0 * g), 1.915_f32.mul_add(cal::dsin(g), l));
+        let x = cal::dsin(epsilon) * cal::dsin(lamda);
         Ok((180.0 / (4.0 * (1.0_f32).atan())) * (x / (-x).mul_add(x, 1.0).sqrt()).atan())
     }
     /// Remaining time to next prayer
-    pub fn time_remaining(&self) -> Result<(u32, u32), Error> {
+    pub fn time_remaining(&self) -> Result<(u32, u32), crate::Error> {
         let next_prayer_time = self.time(self.next()?);
         let now_to_next = next_prayer_time - time::now();
         let now_to_next = now_to_next.num_seconds() as f64;
@@ -282,7 +283,7 @@ impl PrayerTimes {
         Ok((hours, minutes))
     }
     /// Get next prayer
-    pub fn next(&self) -> Result<Prayer, Error> {
+    pub fn next(&self) -> Result<Prayer, crate::Error> {
         match self.current()? {
             Prayer::Fajr => Ok(Prayer::Sherook),
             Prayer::Sherook => Ok(Prayer::Dohr),
@@ -304,7 +305,7 @@ impl PrayerTimes {
         }
     }
     /// Get current prayer
-    pub fn current(&self) -> Result<Prayer, Error> {
+    pub fn current(&self) -> Result<Prayer, crate::Error> {
         Ok(self.current_time(time::now()))
     }
     /// Helper function for `current`
@@ -334,152 +335,166 @@ impl PrayerTimes {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pray::{madhab::Madhab, method::Method, prayer::Prayer};
+    use crate::salah::{madhab::Madhab, method::Method};
     use crate::time;
 
-    fn add_time(date: Date, hour: u32, minute: u32, second: u32) -> Result<DateTime, Error> {
+    fn date() -> Result<Date, crate::Error> {
+        time::date(2021, 4, 9)
+    }
+    fn city() -> Result<Location, crate::Error> {
+        let jakarta = Location::new(-6.18233995_f32, 106.84287154_f32);
+        Ok(jakarta)
+    }
+    fn prayer_times(config: Config) -> Result<PrayerTimes, crate::Error> {
+        let prayer_times = PrayerSchedule::new(city()?)?
+            .on(date()?)
+            .with_config(config)
+            .calculate()?;
+        Ok(prayer_times)
+    }
+    fn prayer_times_with_date(config: Config, date: Date) -> Result<PrayerTimes, crate::Error> {
+        let prayer_times = PrayerSchedule::new(city()?)?
+            .on(date)
+            .with_config(config)
+            .calculate()?;
+        Ok(prayer_times)
+    }
+    fn expected_time(hour: u32, minute: u32, second: u32) -> Result<DateTime, crate::Error> {
+        let date = date()?;
+        Ok(date.and_hms_opt(hour, minute, second).unwrap())
+    }
+    fn expected_time_with_date(
+        date: Date,
+        hour: u32,
+        minute: u32,
+        second: u32,
+    ) -> Result<DateTime, crate::Error> {
         Ok(date.and_hms_opt(hour, minute, second).unwrap())
     }
     #[test]
     /// Tested against https://www.jadwalsholat.org/
     /// and the result is extremely accurate
-    fn praytimes_jakarta() -> Result<(), Error> {
+    fn praytimes_jakarta() -> Result<(), crate::Error> {
         // https://www.mapcoordinates.net/en
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = time::date(2021, 4, 9);
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = PrayerSchedule::new(jakarta_city)?
-            .on(date)
-            .with_config(config)
-            .calculate()?;
+        let prayer_times = prayer_times(config)?;
 
-        assert_eq!(prayer_times.dohr, add_time(date, 11, 54, 14)?);
-        assert_eq!(prayer_times.asr, add_time(date, 15, 12, 14)?);
-        assert_eq!(prayer_times.maghreb, add_time(date, 17, 54, 14)?);
-        assert_eq!(prayer_times.ishaa, add_time(date, 19, 3, 49)?);
-        assert_eq!(prayer_times.fajr, add_time(date, 4, 36, 34)?);
-        assert_eq!(prayer_times.sherook, add_time(date, 5, 54, 14)?);
+        assert_eq!(prayer_times.dohr, expected_time(11, 54, 14)?);
+        assert_eq!(prayer_times.asr, expected_time(15, 12, 14)?);
+        assert_eq!(prayer_times.maghreb, expected_time(17, 54, 14)?);
+        assert_eq!(prayer_times.ishaa, expected_time(19, 3, 49)?);
+        assert_eq!(prayer_times.fajr, expected_time(4, 36, 34)?);
+        assert_eq!(prayer_times.sherook, expected_time(5, 54, 14)?);
         assert_eq!(
             prayer_times.first_third_of_night,
-            add_time(date, 21, 28, 21)?
+            expected_time(21, 28, 21)?
         );
-        assert_eq!(prayer_times.midnight, add_time(date, 23, 15, 24)?);
-        assert_eq!(prayer_times.last_third_of_night, add_time(date, 1, 2, 28)?);
+        assert_eq!(prayer_times.midnight, expected_time(23, 15, 24)?);
+        assert_eq!(prayer_times.last_third_of_night, expected_time(1, 2, 28)?);
 
         Ok(())
     }
     #[test]
-    fn praytimes_jakarta_umm_alqura() -> Result<(), Error> {
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = time::date(2021, 4, 9);
+    fn praytimes_jakarta_umm_alqura() -> Result<(), crate::Error> {
         let config = Config::new().with(Method::UmmAlQura, Madhab::Shafi);
-        let prayer_times = PrayerSchedule::new(jakarta_city)?
-            .on(date)
-            .with_config(config)
-            .calculate()?;
+        let prayer_times = prayer_times(config)?;
 
-        assert_eq!(prayer_times.ishaa, add_time(date, 19, 24, 14)?);
-        assert_eq!(prayer_times.fajr, add_time(date, 4, 42, 39)?);
+        assert_eq!(prayer_times.ishaa, expected_time(19, 24, 14)?);
+        assert_eq!(prayer_times.fajr, expected_time(4, 42, 39)?);
         assert_eq!(
             prayer_times.first_third_of_night,
-            add_time(date, 21, 30, 22)?
+            expected_time(21, 30, 22)?
         );
-        assert_eq!(prayer_times.midnight, add_time(date, 23, 18, 26)?);
-        assert_eq!(prayer_times.last_third_of_night, add_time(date, 1, 6, 30)?);
+        assert_eq!(prayer_times.midnight, expected_time(23, 18, 26)?);
+        assert_eq!(prayer_times.last_third_of_night, expected_time(1, 6, 30)?);
 
         Ok(())
     }
     #[test]
-    fn praytimes_jakarta_fixed_interval() -> Result<(), Error> {
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = time::date(2021, 4, 9);
+    fn praytimes_jakarta_fixed_interval() -> Result<(), crate::Error> {
         let config = Config::new().with(Method::FixedInterval, Madhab::Shafi);
-        let prayer_times = PrayerSchedule::new(jakarta_city)?
-            .on(date)
-            .with_config(config)
-            .calculate()?;
+        let prayer_times = prayer_times(config)?;
 
-        assert_eq!(prayer_times.ishaa, add_time(date, 19, 24, 14)?);
-        assert_eq!(prayer_times.fajr, add_time(date, 4, 38, 36)?);
-        assert_eq!(
-            prayer_times.first_third_of_night,
-            add_time(date, 21, 29, 1)?
-        );
-        assert_eq!(prayer_times.midnight, add_time(date, 23, 16, 25)?);
-        assert_eq!(prayer_times.last_third_of_night, add_time(date, 1, 3, 49)?);
+        assert_eq!(prayer_times.ishaa, expected_time(19, 24, 14)?);
+        assert_eq!(prayer_times.fajr, expected_time(4, 38, 36)?);
+        assert_eq!(prayer_times.first_third_of_night, expected_time(21, 29, 1)?);
+        assert_eq!(prayer_times.midnight, expected_time(23, 16, 25)?);
+        assert_eq!(prayer_times.last_third_of_night, expected_time(1, 3, 49)?);
 
         Ok(())
     }
     #[test]
-    fn current_prayer_is_dohr() -> Result<(), Error> {
+    fn current_prayer_is_dohr() -> Result<(), crate::Error> {
         // Dohr is: 2021-04-19T11:51:45+07:00
-
+        let date = time::date(2021, 4, 19)?;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = time::date(2021, 4, 19);
-        let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = add_time(date, 11, 52, 0)?;
+        let prayer_times = prayer_times_with_date(config, date)?;
+        let current_prayer_time = expected_time(11, 52, 0)?;
 
-        assert_eq!(times.current_time(current_prayer_time), Prayer::Dohr);
+        assert_eq!(prayer_times.current_time(current_prayer_time), Prayer::Dohr);
         Ok(())
     }
     #[test]
-    fn current_prayer_is_asr() -> Result<(), Error> {
+    fn current_prayer_is_asr() -> Result<(), crate::Error> {
         // Asr is: 2021-04-19T15:11:51+07:00
+        let date = time::date(2021, 4, 19)?;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = time::date(2021, 4, 19);
-        let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = add_time(date, 15, 13, 0)?;
+        let prayer_times = prayer_times_with_date(config, date)?;
+        let current_prayer_time = expected_time_with_date(date, 15, 13, 0)?;
 
-        assert_eq!(times.current_time(current_prayer_time), Prayer::Asr);
+        assert_eq!(prayer_times.current_time(current_prayer_time), Prayer::Asr);
         Ok(())
     }
     #[test]
-    fn current_prayer_is_maghreb() -> Result<(), Error> {
+    fn current_prayer_is_maghreb() -> Result<(), crate::Error> {
         // Maghreb is: 2021-04-19T17:50:12+07:00
+        let date = time::date(2021, 4, 19)?;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = time::date(2021, 4, 19);
-        let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = add_time(date, 17, 51, 0)?;
+        let prayer_times = prayer_times_with_date(config, date)?;
+        let current_prayer_time = expected_time_with_date(date, 17, 51, 0)?;
 
-        assert_eq!(times.current_time(current_prayer_time), Prayer::Maghreb);
+        assert_eq!(
+            prayer_times.current_time(current_prayer_time),
+            Prayer::Maghreb
+        );
         Ok(())
     }
     #[test]
-    fn current_prayer_is_ishaa() -> Result<(), Error> {
+    fn current_prayer_is_ishaa() -> Result<(), crate::Error> {
         // Ishaa is: 2021-04-19T19:00:27+07:00
+        let date = time::date(2021, 4, 19)?;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = time::date(2021, 4, 19);
-        let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = add_time(date, 19, 1, 0)?;
+        let prayer_times = prayer_times_with_date(config, date)?;
+        let current_prayer_time = expected_time_with_date(date, 19, 1, 0)?;
 
-        assert_eq!(times.current_time(current_prayer_time), Prayer::Ishaa);
+        assert_eq!(
+            prayer_times.current_time(current_prayer_time),
+            Prayer::Ishaa
+        );
         Ok(())
     }
     #[test]
-    fn current_prayer_is_fajr() -> Result<(), Error> {
+    fn current_prayer_is_fajr() -> Result<(), crate::Error> {
         // Fajr is: 2021-04-19T04:34:54+07:00,
+        let date = time::date(2021, 4, 19)?;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = time::date(2021, 4, 19);
-        let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = add_time(date, 4, 35, 0)?;
+        let prayer_times = prayer_times_with_date(config, date)?;
+        let current_prayer_time = expected_time_with_date(date, 4, 35, 0)?;
 
-        assert_eq!(times.current_time(current_prayer_time), Prayer::Fajr);
+        assert_eq!(prayer_times.current_time(current_prayer_time), Prayer::Fajr);
         Ok(())
     }
     #[test]
-    fn current_prayer_is_sherook() -> Result<(), Error> {
+    fn current_prayer_is_sherook() -> Result<(), crate::Error> {
+        let date = time::date(2021, 4, 19)?;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = time::date(2021, 4, 19);
-        let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = add_time(date, 8, 0, 0)?;
+        let prayer_times = prayer_times_with_date(config, date)?;
+        let current_prayer_time = expected_time_with_date(date, 8, 0, 0)?;
 
-        assert_eq!(times.current_time(current_prayer_time), Prayer::Sherook);
+        assert_eq!(
+            prayer_times.current_time(current_prayer_time),
+            Prayer::Sherook
+        );
         Ok(())
     }
 }

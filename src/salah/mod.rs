@@ -1,11 +1,12 @@
+#![allow(clippy::excessive_precision)]
+
 mod config;
-pub mod error;
 mod madhab;
 mod method;
 mod prayer;
 mod times;
 
-// // shorter access for library consumer
+// shorter access for library consumer
 pub use config::Config;
 pub use madhab::Madhab;
 pub use method::Method;

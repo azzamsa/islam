@@ -1,6 +1,5 @@
 use chrono::{Datelike, Weekday};
 
-use super::error::Error;
 use crate::time::today;
 
 // only obligatory prayer
@@ -15,7 +14,7 @@ pub enum Prayer {
 }
 
 impl Prayer {
-    pub fn name(self) -> Result<String, Error> {
+    pub fn name(self) -> Result<String, crate::Error> {
         let prayer_name = match self {
             Self::Fajr => "Fajr",
             Self::Sherook => "Sherook",
@@ -39,7 +38,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn prayer_name() -> Result<(), Error> {
+    fn prayer_name() -> Result<(), crate::Error> {
         assert_eq!(Prayer::Fajr.name()?, "Fajr");
         assert_eq!(Prayer::Sherook.name()?, "Sherook");
 

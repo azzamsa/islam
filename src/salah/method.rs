@@ -1,4 +1,4 @@
-use crate::pray::config::{Config, IshaInterval};
+use crate::salah::config::{Config, IshaInterval};
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Method {

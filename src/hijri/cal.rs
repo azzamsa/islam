@@ -1,5 +1,6 @@
-use crate::Date;
 use chrono::Datelike;
+
+use crate::Date;
 
 // Trigonometric functions takes values in degree
 pub fn dcos(deg: f32) -> f32 {
@@ -146,25 +147,27 @@ mod tests {
         assert_eq!(format!("{:.1$}", equation, precision), "3.53552");
     }
     #[test]
-    fn test_hijri_to_julian() {
-        assert_eq!(hijri_to_julian(date(1442, 8, 25)), 2459313);
-        assert_eq!(hijri_to_julian(date(333, 1, 27)), 2066116);
-        assert_eq!(hijri_to_julian(date(1, 1, 27)), 1948466);
+    fn test_hijri_to_julian() -> Result<(), crate::Error> {
+        assert_eq!(hijri_to_julian(date(1442, 8, 25)?), 2459313);
+        assert_eq!(hijri_to_julian(date(333, 1, 27)?), 2066116);
+        assert_eq!(hijri_to_julian(date(1, 1, 27)?), 1948466);
+        Ok(())
     }
     #[test]
-    fn test_georgian_to_julian() {
+    fn test_georgian_to_julian() -> Result<(), crate::Error> {
         assert_eq!(
-            gregorian_to_julian(date(1957, 10, 4)),
+            gregorian_to_julian(date(1957, 10, 4)?),
             2436115.5 // python version: 2436116.31
         );
         assert_eq!(
-            gregorian_to_julian(date(333, 1, 27)),
+            gregorian_to_julian(date(333, 1, 27)?),
             1842712.5 // python version: 1842713.0
         );
         assert_eq!(
-            gregorian_to_julian(date(2000, 1, 1)),
+            gregorian_to_julian(date(2000, 1, 1)?),
             2451544.5 // python version: 2451545.0
         );
+        Ok(())
     }
     #[test]
     fn test_julian_to_hijri() {

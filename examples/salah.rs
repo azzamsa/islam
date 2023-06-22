@@ -1,8 +1,8 @@
 use chrono::{Local, Timelike};
 
-use islam::pray::{error::Error, Config, Location, Madhab, Method, PrayerSchedule};
+use islam::salah::{Config, Location, Madhab, Method, PrayerSchedule};
 
-fn example() -> Result<(), Error> {
+fn example() -> Result<(), islam::Error> {
     // https://www.mapcoordinates.net/en
     let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32);
     let config = Config::new().with(Method::Egyptian, Madhab::Shafi);
@@ -50,13 +50,9 @@ fn example() -> Result<(), Error> {
     println!("\nCurrent Prayer");
     println!("{}: {:02}:{:02}", current_prayer.name()?, hour, minute);
 
-    // let next_prayer = prayer_times.next()?;
-    // let time = prayer_times.time(next_prayer);
-    // let format = format_description::parse("[hour]:[minute]").unwrap();
-    // let time_str = time.format(&format).unwrap();
-
-    // println!("\nNext Prayer");
-    // println!("{}: ({})", next_prayer.name()?, time_str);
+    println!("\nNext Prayer");
+    let next_prayer = prayer_times.next()?;
+    println!("{}", next_prayer.name()?);
 
     Ok(())
 }

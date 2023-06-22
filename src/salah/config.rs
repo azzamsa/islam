@@ -1,4 +1,4 @@
-use crate::pray::{madhab::Madhab, method::Method};
+use crate::salah::{madhab::Madhab, method::Method};
 
 #[derive(Debug, Copy, Clone)]
 pub struct IshaInterval {
@@ -70,8 +70,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pray::madhab::Madhab;
-    use crate::pray::method::Method;
+    use crate::salah::{madhab::Madhab, method::Method};
 
     #[test]
     fn default() {

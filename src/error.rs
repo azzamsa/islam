@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Error, Debug, PartialEq)]
 pub enum Error {
     #[error("No such month: {0:?}")]
-    InvalidMonth(u8),
+    InvalidMonth(u32),
 
     #[error("No such time: {0:?}")]
     InvalidTime(String),

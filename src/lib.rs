@@ -1,10 +1,12 @@
 #![allow(clippy::excessive_precision)]
 
-mod baselib;
+pub mod error;
 pub mod hijri;
-pub mod pray;
-pub mod time;
+pub mod salah;
+mod time;
+
+pub use error::Error;
 
 // Use internal type. Chrono API changes very often
-type Date = chrono::NaiveDate;
-type DateTime = chrono::NaiveDateTime;
+pub type Date = chrono::NaiveDate;
+pub type DateTime = chrono::NaiveDateTime;
