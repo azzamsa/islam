@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2023-06-22
+
+### Bug fixes
+
+- Restructure ([eb33501](eb33501733580178938e689a3147983eb58e5b0a))
+- Use chrono v0.4.26 ([b57aa45](b57aa45e1f6855d25c082cb1273a95ab06f3c633))
+- Migrate back to chrono ([bc53fa5](bc53fa59123c0ae0ebea5e16f8be0655c8e821f6))
+
 ## [1.0.0] - 2023-01-22
 
 ### Bug fixes
