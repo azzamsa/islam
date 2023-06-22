@@ -1,11 +1,12 @@
+use chrono::Datelike;
 use islam::hijri::{HijriDate, HijriError};
-use time::macros::date;
+use islam::time::date;
 
 fn example() -> Result<(), HijriError> {
     let hijri_date = HijriDate::new(1442, 8, 25)?;
     let tomorrow = hijri_date.clone().next_date()?;
     let gregorian = hijri_date.to_gregorian()?;
-    let from_gregorian = HijriDate::from_gregorian(date!(2021 - 4 - 9), 0);
+    let from_gregorian = HijriDate::from_gregorian(date(2021, 4, 9), 0);
     let from_julian = HijriDate::from_julian(2459313, 0);
 
     println!(

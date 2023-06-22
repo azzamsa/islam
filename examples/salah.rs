@@ -1,13 +1,14 @@
+use chrono::{Local, Timelike};
+
 use islam::pray::{error::Error, Config, Location, Madhab, Method, PrayerSchedule};
-use time::{format_description, OffsetDateTime};
 
 fn example() -> Result<(), Error> {
     // https://www.mapcoordinates.net/en
     let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32);
-    let today = OffsetDateTime::now_local()?.date();
     let config = Config::new().with(Method::Egyptian, Madhab::Shafi);
+    // Tested against https://www.jadwalsholat.org/
     let prayer_times = PrayerSchedule::new(jakarta_city)?
-        .on(today)
+        .on(Local::today())
         .with_config(config)
         .calculate()?;
 
@@ -46,16 +47,16 @@ fn example() -> Result<(), Error> {
 
     let current_prayer = prayer_times.current()?;
     let (hour, minute) = prayer_times.time_remaining()?;
-    println!("\nCurent Prayer");
-    println!("{}: ({}:{})", current_prayer.name()?, hour, minute);
+    println!("\nCurrent Prayer");
+    println!("{}: {:02}:{:02}", current_prayer.name()?, hour, minute);
 
-    let next_prayer = prayer_times.next()?;
-    let time = prayer_times.time(next_prayer);
-    let format = format_description::parse("[hour]:[minute]").unwrap();
-    let time = time.format(&format).unwrap();
+    // let next_prayer = prayer_times.next()?;
+    // let time = prayer_times.time(next_prayer);
+    // let format = format_description::parse("[hour]:[minute]").unwrap();
+    // let time_str = time.format(&format).unwrap();
 
-    println!("\nNext Prayer");
-    println!("{}: ({})", next_prayer.name()?, time);
+    // println!("\nNext Prayer");
+    // println!("{}: ({})", next_prayer.name()?, time_str);
 
     Ok(())
 }

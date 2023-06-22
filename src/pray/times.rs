@@ -1,15 +1,14 @@
 use std::f32::consts::PI;
 
-use time::{Date, Duration, OffsetDateTime, UtcOffset};
+use chrono::{Datelike, Duration, Local};
 
+use super::error::Error;
 use crate::{
     baselib::{self, dcos, dsin},
     hijri::HijriDate,
     pray::{config::Config, prayer::Prayer},
+    time, LocalDate, LocalDateTime,
 };
-
-use super::error::Error;
-use super::today;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Location {
@@ -31,7 +30,7 @@ impl Location {
 #[derive(Debug, Copy, Clone)]
 pub struct PrayerSchedule {
     location: Location,
-    date: Date,
+    date: LocalDate,
     config: Config,
 }
 
@@ -39,12 +38,12 @@ impl PrayerSchedule {
     pub fn new(location: Location) -> Result<Self, Error> {
         Ok(Self {
             location,
-            date: today()?,
+            date: time::today(),
             // default config
             config: Config::new(),
         })
     }
-    pub const fn on(mut self, date: Date) -> Self {
+    pub const fn on(mut self, date: LocalDate) -> Self {
         self.date = date;
         self
     }
@@ -59,26 +58,24 @@ impl PrayerSchedule {
 
 #[derive(Debug, Copy, Clone)]
 pub struct PrayerTimes {
-    pub date: OffsetDateTime,
+    pub date: LocalDateTime,
     pub location: Location,
     pub config: Config,
-    pub dohr: OffsetDateTime,
-    pub asr: OffsetDateTime,
-    pub maghreb: OffsetDateTime,
-    pub ishaa: OffsetDateTime,
-    pub fajr: OffsetDateTime,
-    pub fajr_tomorrow: OffsetDateTime,
-    pub sherook: OffsetDateTime,
-    pub first_third_of_night: OffsetDateTime,
-    pub midnight: OffsetDateTime,
-    pub last_third_of_night: OffsetDateTime,
+    pub dohr: LocalDateTime,
+    pub asr: LocalDateTime,
+    pub maghreb: LocalDateTime,
+    pub ishaa: LocalDateTime,
+    pub fajr: LocalDateTime,
+    pub fajr_tomorrow: LocalDateTime,
+    pub sherook: LocalDateTime,
+    pub first_third_of_night: LocalDateTime,
+    pub midnight: LocalDateTime,
+    pub last_third_of_night: LocalDateTime,
 }
 
 impl PrayerTimes {
-    pub fn new(date: Date, location: Location, config: Config) -> Result<Self, Error> {
-        let date = date
-            .with_hms(0, 0, 0)?
-            .assume_offset(UtcOffset::current_local_offset()?);
+    pub fn new(date: LocalDate, location: Location, config: Config) -> Result<Self, Error> {
+        let date = date.and_hms(0, 0, 0);
 
         // dohr time must be calculated at first, every other time depends on it!
         let dohr_time = Self::dohr(date, location)?;
@@ -130,34 +127,34 @@ impl PrayerTimes {
         })
     }
     /// Get the Dohr
-    fn dohr(date: OffsetDateTime, location: Location) -> Result<f32, Error> {
+    fn dohr(date: LocalDateTime, location: Location) -> Result<f32, Error> {
         let longitude_difference = Self::longitude_difference(location)?;
 
-        let julian_day = baselib::gregorian_to_julian(Self::to_naive_date(date)?);
+        let julian_day = baselib::gregorian_to_julian(date.date());
         let time_equation = baselib::equation_of_time(julian_day);
         Ok((12.0 + longitude_difference) + (time_equation / 60.0))
     }
     /// Get the Asr time
-    fn asr(date: OffsetDateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn asr(date: LocalDateTime, location: Location, config: Config) -> Result<f32, Error> {
         let dohr_time = Self::dohr(date, location)?;
         let angle = Self::asr_angle(date, location, config)?;
         Ok(dohr_time + Self::time_for_angle(angle, date, location)?)
     }
     /// Get the Maghreb time
-    fn maghreb(date: OffsetDateTime, location: Location, _config: Config) -> Result<f32, Error> {
+    fn maghreb(date: LocalDateTime, location: Location, _config: Config) -> Result<f32, Error> {
         let dohr_time = Self::dohr(date, location)?;
 
         let angle = 90.83333; // constants
         Ok(dohr_time + Self::time_for_angle(angle, date, location)?)
     }
     /// Get the Ishaa time
-    fn ishaa(date: OffsetDateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn ishaa(date: LocalDateTime, location: Location, config: Config) -> Result<f32, Error> {
         let dohr_time = Self::dohr(date, location)?;
 
         // checking one of `all_year` or `ramadan` is enough
         // because if set, none of them would be 0.0
         if config.isha_interval.all_year > 0.0 {
-            let is_ramadan = HijriDate::from_gregorian(Self::to_naive_date(date)?, 0).month == 9;
+            let is_ramadan = HijriDate::from_gregorian(date.date(), 0).month == 9;
             let time_after_maghreb = if is_ramadan {
                 config.isha_interval.ramdan / 60.0
             } else {
@@ -177,7 +174,7 @@ impl PrayerTimes {
         }
     }
     /// Get the Fajr time
-    fn fajr(date: OffsetDateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn fajr(date: LocalDateTime, location: Location, config: Config) -> Result<f32, Error> {
         let dohr_time = Self::dohr(date, location)?;
         // NOTE (upstream) wrong if-else?
         // let angle = if config.method == Method::FixedInterval {
@@ -189,7 +186,7 @@ impl PrayerTimes {
         Ok(dohr_time - Self::time_for_angle(angle, date, location)?)
     }
     /// Get the Sherook time
-    fn sherook(date: OffsetDateTime, location: Location, _config: Config) -> Result<f32, Error> {
+    fn sherook(date: LocalDateTime, location: Location, _config: Config) -> Result<f32, Error> {
         let dohr_time = Self::dohr(date, location)?;
 
         let angle = 90.83333;
@@ -197,7 +194,7 @@ impl PrayerTimes {
     }
     /// Get the third of night
     fn first_third_of_night(
-        date: OffsetDateTime,
+        date: LocalDateTime,
         location: Location,
         config: Config,
     ) -> Result<f32, Error> {
@@ -207,14 +204,14 @@ impl PrayerTimes {
     }
     /// Midnight is the exact time between sunrise (Shorook) and sunset (Maghreb),
     /// It defines usually the end of Ishaa time
-    fn midnight(date: OffsetDateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn midnight(date: LocalDateTime, location: Location, config: Config) -> Result<f32, Error> {
         let maghreb_time = Self::maghreb(date, location, config)?;
         let fajr_time = Self::fajr(date, location, config)?;
         Ok(maghreb_time + (24.0 - (maghreb_time - fajr_time)) / 2.0)
     }
     /// Qiyam time starts after Ishaa directly, however, the best time for Qiyam is the last third of night
     fn last_third_of_night(
-        date: OffsetDateTime,
+        date: LocalDateTime,
         location: Location,
         config: Config,
     ) -> Result<f32, Error> {
@@ -225,28 +222,30 @@ impl PrayerTimes {
     }
     /// Convert a decimal value (in hours) to time object
     fn hours_to_time(
-        date: OffsetDateTime,
+        date: LocalDateTime,
         val: f32,
         shift: f32,
         config: Config,
-    ) -> Result<OffsetDateTime, Error> {
+    ) -> Result<LocalDateTime, Error> {
         let is_summer = i32::from(config.is_summer);
-        let hours = val + (shift / 3600.0);
-        let minutes = (hours - (hours).floor()) * 60.0;
-        let seconds = (minutes - (minutes).floor()) * 60.0;
-        let hours = (hours + is_summer as f32).floor() % 24.0;
-        Ok(Self::to_naive_date(date)?
-            .with_hms(hours as u8, minutes.floor() as u8, seconds.floor() as u8)?
-            .assume_offset(UtcOffset::current_local_offset()?))
+        let hour = val + (shift / 3600.0);
+        let minute = (hour - (hour).floor()) * 60.0;
+        let second = (minute - (minute).floor()) * 60.0;
+        let hour = (hour + is_summer as f32).floor() % 24.0;
+        Ok(time::date(date.year(), date.month(), date.day()).and_hms(
+            hour as u32,
+            minute as u32,
+            second as u32,
+        ))
     }
     fn longitude_difference(location: Location) -> Result<f32, Error> {
-        let local_offset = UtcOffset::current_local_offset()?;
-        let timezone = local_offset.whole_hours();
-        let middle_longitude = timezone as f32 * 15.0;
+        let offset_second = Local::now().offset().local_minus_utc();
+        let offset_hour = Duration::seconds(offset_second.into()).num_hours();
+        let middle_longitude = offset_hour as f32 * 15.0;
         Ok((middle_longitude - location.longitude) / 15.0)
     }
     /// Get the angle angle for asr (according to choosen madhab)
-    fn asr_angle(date: OffsetDateTime, location: Location, config: Config) -> Result<f32, Error> {
+    fn asr_angle(date: LocalDateTime, location: Location, config: Config) -> Result<f32, Error> {
         let delta = Self::sun_declination(date)?;
         let x = dsin(location.latitude).mul_add(dsin(delta), dcos(location.latitude) * dcos(delta));
         let a = (x / (-x).mul_add(x, 1.0).sqrt()).atan();
@@ -254,16 +253,15 @@ impl PrayerTimes {
         Ok(90.0 - (180.0 / PI) * 2.0_f32.mul_add((1.0_f32).atan(), (x).atan()))
     }
     /// Get Times for "Fajr, Sherook, Asr, Maghreb, ishaa"
-    fn time_for_angle(angle: f32, date: OffsetDateTime, location: Location) -> Result<f32, Error> {
+    fn time_for_angle(angle: f32, date: LocalDateTime, location: Location) -> Result<f32, Error> {
         let delta = Self::sun_declination(date)?;
         let s = (dcos(angle) - dsin(location.latitude) * dsin(delta))
             / (dcos(location.latitude) * dcos(delta));
         Ok((180.0 / PI * ((-s / (-s).mul_add(s, 1.0).sqrt()).atan() + PI / 2.0)) / 15.0)
     }
     /// Get sun declination
-    fn sun_declination(date: OffsetDateTime) -> Result<f32, Error> {
-        let julian_day = baselib::gregorian_to_julian(Self::to_naive_date(date)?);
-
+    fn sun_declination(date: LocalDateTime) -> Result<f32, Error> {
+        let julian_day = baselib::gregorian_to_julian(date.date());
         let n = julian_day - 2_451_544.5;
         let epsilon = 23.44 - (0.000_000_4 * n);
         let l = 0.985_647_4_f32.mul_add(n, 280.466);
@@ -275,9 +273,8 @@ impl PrayerTimes {
     /// Remaining time to next prayer
     pub fn time_remaining(&self) -> Result<(u32, u32), Error> {
         let next_prayer_time = self.time(self.next()?);
-        let now: OffsetDateTime = OffsetDateTime::now_local()?;
-        let now_to_next = next_prayer_time - now;
-        let now_to_next = now_to_next.whole_seconds() as f64;
+        let now_to_next = next_prayer_time - time::now();
+        let now_to_next = now_to_next.num_seconds() as f64;
 
         let whole: f64 = now_to_next / 60.0 / 60.0;
         let fract = whole.fract();
@@ -298,7 +295,7 @@ impl PrayerTimes {
         }
     }
     /// Get prayer's time
-    pub fn time(&self, prayer: Prayer) -> OffsetDateTime {
+    pub fn time(&self, prayer: Prayer) -> LocalDateTime {
         match prayer {
             Prayer::Fajr => self.fajr,
             Prayer::Sherook => self.sherook,
@@ -310,10 +307,10 @@ impl PrayerTimes {
     }
     /// Get current prayer
     pub fn current(&self) -> Result<Prayer, Error> {
-        Ok(self.current_time(OffsetDateTime::now_local()?))
+        Ok(self.current_time(time::now()))
     }
-    // Helper function for `current`
-    fn current_time(&self, time: OffsetDateTime) -> Prayer {
+    /// Helper function for `current`
+    fn current_time(&self, time: LocalDateTime) -> Prayer {
         // dummy value. it will replaced below
         // just to avoid using `Option` or `Err`
         let mut current_prayer = Prayer::Dohr;
@@ -334,31 +331,21 @@ impl PrayerTimes {
         }
         current_prayer
     }
-    /// Build an instance of `Date`
-    fn to_naive_date(date: OffsetDateTime) -> Result<Date, Error> {
-        Ok(Date::from_calendar_date(
-            date.year(),
-            date.month(),
-            date.day(),
-        )?)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::pray::{madhab::Madhab, method::Method, prayer::Prayer};
-    use time::macros::date;
+    use crate::time;
 
-    fn to_offset_datetime(
-        date: Date,
-        hour: u8,
-        minute: u8,
-        second: u8,
-    ) -> Result<OffsetDateTime, Error> {
-        Ok(date
-            .with_hms(hour, minute, second)?
-            .assume_offset(UtcOffset::current_local_offset()?))
+    fn add_time(
+        date: LocalDate,
+        hour: u32,
+        minute: u32,
+        second: u32,
+    ) -> Result<LocalDateTime, Error> {
+        Ok(date.and_hms(hour, minute, second))
     }
     #[test]
     /// Tested against https://www.jadwalsholat.org/
@@ -366,76 +353,67 @@ mod tests {
     fn praytimes_jakarta() -> Result<(), Error> {
         // https://www.mapcoordinates.net/en
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = date!(2021 - 4 - 9);
+        let date = time::date(2021, 4, 9);
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let prayer_times = PrayerSchedule::new(jakarta_city)?
             .on(date)
             .with_config(config)
             .calculate()?;
 
-        assert_eq!(prayer_times.dohr, to_offset_datetime(date, 11, 54, 14)?);
-        assert_eq!(prayer_times.asr, to_offset_datetime(date, 15, 12, 14)?);
-        assert_eq!(prayer_times.maghreb, to_offset_datetime(date, 17, 54, 14)?);
-        assert_eq!(prayer_times.ishaa, to_offset_datetime(date, 19, 3, 49)?);
-        assert_eq!(prayer_times.fajr, to_offset_datetime(date, 4, 36, 34)?);
-        assert_eq!(prayer_times.sherook, to_offset_datetime(date, 5, 54, 14)?);
+        assert_eq!(prayer_times.dohr, add_time(date, 11, 54, 14)?);
+        assert_eq!(prayer_times.asr, add_time(date, 15, 12, 14)?);
+        assert_eq!(prayer_times.maghreb, add_time(date, 17, 54, 14)?);
+        assert_eq!(prayer_times.ishaa, add_time(date, 19, 3, 49)?);
+        assert_eq!(prayer_times.fajr, add_time(date, 4, 36, 34)?);
+        assert_eq!(prayer_times.sherook, add_time(date, 5, 54, 14)?);
         assert_eq!(
             prayer_times.first_third_of_night,
-            to_offset_datetime(date, 21, 28, 21)?
+            add_time(date, 21, 28, 21)?
         );
-        assert_eq!(prayer_times.midnight, to_offset_datetime(date, 23, 15, 24)?);
-        assert_eq!(
-            prayer_times.last_third_of_night,
-            to_offset_datetime(date, 1, 2, 28)?
-        );
+        assert_eq!(prayer_times.midnight, add_time(date, 23, 15, 24)?);
+        assert_eq!(prayer_times.last_third_of_night, add_time(date, 1, 2, 28)?);
 
         Ok(())
     }
     #[test]
     fn praytimes_jakarta_umm_alqura() -> Result<(), Error> {
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = date!(2021 - 4 - 9);
+        let date = time::date(2021, 4, 9);
         let config = Config::new().with(Method::UmmAlQura, Madhab::Shafi);
         let prayer_times = PrayerSchedule::new(jakarta_city)?
             .on(date)
             .with_config(config)
             .calculate()?;
 
-        assert_eq!(prayer_times.ishaa, to_offset_datetime(date, 19, 24, 14)?);
-        assert_eq!(prayer_times.fajr, to_offset_datetime(date, 4, 42, 39)?);
+        assert_eq!(prayer_times.ishaa, add_time(date, 19, 24, 14)?);
+        assert_eq!(prayer_times.fajr, add_time(date, 4, 42, 39)?);
         assert_eq!(
             prayer_times.first_third_of_night,
-            to_offset_datetime(date, 21, 30, 22)?
+            add_time(date, 21, 30, 22)?
         );
-        assert_eq!(prayer_times.midnight, to_offset_datetime(date, 23, 18, 26)?);
-        assert_eq!(
-            prayer_times.last_third_of_night,
-            to_offset_datetime(date, 1, 6, 30)?
-        );
+        assert_eq!(prayer_times.midnight, add_time(date, 23, 18, 26)?);
+        assert_eq!(prayer_times.last_third_of_night, add_time(date, 1, 6, 30)?);
 
         Ok(())
     }
     #[test]
     fn praytimes_jakarta_fixed_interval() -> Result<(), Error> {
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = date!(2021 - 4 - 9);
+        let date = time::date(2021, 4, 9);
         let config = Config::new().with(Method::FixedInterval, Madhab::Shafi);
         let prayer_times = PrayerSchedule::new(jakarta_city)?
             .on(date)
             .with_config(config)
             .calculate()?;
 
-        assert_eq!(prayer_times.ishaa, to_offset_datetime(date, 19, 24, 14)?);
-        assert_eq!(prayer_times.fajr, to_offset_datetime(date, 4, 38, 36)?);
+        assert_eq!(prayer_times.ishaa, add_time(date, 19, 24, 14)?);
+        assert_eq!(prayer_times.fajr, add_time(date, 4, 38, 36)?);
         assert_eq!(
             prayer_times.first_third_of_night,
-            to_offset_datetime(date, 21, 29, 1)?
+            add_time(date, 21, 29, 1)?
         );
-        assert_eq!(prayer_times.midnight, to_offset_datetime(date, 23, 16, 25)?);
-        assert_eq!(
-            prayer_times.last_third_of_night,
-            to_offset_datetime(date, 1, 3, 49)?
-        );
+        assert_eq!(prayer_times.midnight, add_time(date, 23, 16, 25)?);
+        assert_eq!(prayer_times.last_third_of_night, add_time(date, 1, 3, 49)?);
 
         Ok(())
     }
@@ -445,9 +423,9 @@ mod tests {
 
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = date!(2021 - 4 - 19);
+        let date = time::date(2021, 4, 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = to_offset_datetime(date, 11, 52, 0)?;
+        let current_prayer_time = add_time(date, 11, 52, 0)?;
 
         assert_eq!(times.current_time(current_prayer_time), Prayer::Dohr);
         Ok(())
@@ -455,12 +433,11 @@ mod tests {
     #[test]
     fn current_prayer_is_asr() -> Result<(), Error> {
         // Asr is: 2021-04-19T15:11:51+07:00
-
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = date!(2021 - 4 - 19);
+        let date = time::date(2021, 4, 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = to_offset_datetime(date, 15, 13, 0)?;
+        let current_prayer_time = add_time(date, 15, 13, 0)?;
 
         assert_eq!(times.current_time(current_prayer_time), Prayer::Asr);
         Ok(())
@@ -468,12 +445,11 @@ mod tests {
     #[test]
     fn current_prayer_is_maghreb() -> Result<(), Error> {
         // Maghreb is: 2021-04-19T17:50:12+07:00
-
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = date!(2021 - 4 - 19);
+        let date = time::date(2021, 4, 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = to_offset_datetime(date, 17, 51, 0)?;
+        let current_prayer_time = add_time(date, 17, 51, 0)?;
 
         assert_eq!(times.current_time(current_prayer_time), Prayer::Maghreb);
         Ok(())
@@ -481,12 +457,11 @@ mod tests {
     #[test]
     fn current_prayer_is_ishaa() -> Result<(), Error> {
         // Ishaa is: 2021-04-19T19:00:27+07:00
-
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = date!(2021 - 4 - 19);
+        let date = time::date(2021, 4, 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = to_offset_datetime(date, 19, 1, 0)?;
+        let current_prayer_time = add_time(date, 19, 1, 0)?;
 
         assert_eq!(times.current_time(current_prayer_time), Prayer::Ishaa);
         Ok(())
@@ -494,12 +469,11 @@ mod tests {
     #[test]
     fn current_prayer_is_fajr() -> Result<(), Error> {
         // Fajr is: 2021-04-19T04:34:54+07:00,
-
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = date!(2021 - 4 - 19);
+        let date = time::date(2021, 4, 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = to_offset_datetime(date, 4, 35, 0)?;
+        let current_prayer_time = add_time(date, 4, 35, 0)?;
 
         assert_eq!(times.current_time(current_prayer_time), Prayer::Fajr);
         Ok(())
@@ -508,9 +482,9 @@ mod tests {
     fn current_prayer_is_sherook() -> Result<(), Error> {
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let jakarta_city = Location::new(-6.18233995_f32, 106.84287154_f32);
-        let date = date!(2021 - 4 - 19);
+        let date = time::date(2021, 4, 19);
         let times = PrayerTimes::new(date, jakarta_city, config)?;
-        let current_prayer_time = to_offset_datetime(date, 8, 0, 0)?;
+        let current_prayer_time = add_time(date, 8, 0, 0)?;
 
         assert_eq!(times.current_time(current_prayer_time), Prayer::Sherook);
         Ok(())

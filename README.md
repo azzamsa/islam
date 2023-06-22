@@ -39,7 +39,7 @@ So here it is, `islam` is born!
 ```rust
 // https://www.mapcoordinates.net/en
 let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32);
-let today = OffsetDateTime::now_local()?.date();
+let today = NaiveDateTime::now_local()?.date();
 let config = Config::new().with(Method::Singapore, Madhab::Shafi);
 let prayer_times = PrayerSchedule::new(jakarta_city)?
     .on(today)

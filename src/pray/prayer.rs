@@ -1,6 +1,7 @@
-use time::Weekday;
+use chrono::{Datelike, Weekday};
 
-use super::{error::Error, today};
+use super::error::Error;
+use crate::time::today;
 
 // only obligatory prayer
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -19,7 +20,7 @@ impl Prayer {
             Self::Fajr => "Fajr",
             Self::Sherook => "Sherook",
             Self::Dohr => {
-                if today()?.weekday() == Weekday::Friday {
+                if today().weekday() == Weekday::Fri {
                     "Jumua"
                 } else {
                     "Dohr"
@@ -42,7 +43,7 @@ mod tests {
         assert_eq!(Prayer::Fajr.name()?, "Fajr");
         assert_eq!(Prayer::Sherook.name()?, "Sherook");
 
-        if today()?.weekday() == Weekday::Friday {
+        if today().weekday() == Weekday::Fri {
             assert_eq!(Prayer::Dohr.name()?, "Jumua");
         } else {
             assert_eq!(Prayer::Dohr.name()?, "Dohr");

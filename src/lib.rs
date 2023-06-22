@@ -3,8 +3,7 @@
 mod baselib;
 pub mod hijri;
 pub mod pray;
+pub mod time;
 
-// A convenience module for islam cuonsumer to use
-pub mod time {
-    pub use time::OffsetDateTime;
-}
+type LocalDate = chrono::Date<chrono::Local>;
+type LocalDateTime = chrono::DateTime<chrono::Local>;
