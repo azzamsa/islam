@@ -272,7 +272,14 @@ impl PrayerTimes {
     /// Remaining time to next prayer
     pub fn time_remaining(&self) -> Result<(u32, u32), crate::Error> {
         let next_prayer_time = self.time(self.next()?);
-        let now_to_next = next_prayer_time - time::now();
+        let now_to_next;
+        // Check if the next prayer is Fajr (Because Fajr time is less than current time)
+        if next_prayer_time < time::now() {
+            now_to_next = (time::one_sec_before_midnight() - time::now())
+                + (next_prayer_time - time::one_sec_after_midnight());
+        } else {
+            now_to_next = next_prayer_time - time::now();
+        }
         let now_to_next = now_to_next.num_seconds() as f64;
 
         let whole: f64 = now_to_next / 60.0 / 60.0;
