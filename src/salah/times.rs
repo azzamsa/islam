@@ -319,7 +319,7 @@ impl PrayerTimes {
     fn current_time(&self, time: DateTime) -> Prayer {
         // dummy value. it will replaced below
         // just to avoid using `Option` or `Err`
-        let mut current_prayer = Prayer::Dohr;
+        let mut current_prayer = Prayer::Ishaa;
 
         let ranges = vec![
             // fajr, fajr_range
