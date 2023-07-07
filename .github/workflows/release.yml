@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+env:
+  PROJECT_NAME: islam
 
 jobs:
   create-github-release:
@@ -68,7 +70,7 @@ jobs:
       - name: Extract crate information
         shell: bash
         run: |
-          echo "PROJECT_NAME=islam" >> $GITHUB_ENV
+          echo "PROJECT_NAME=${{ env.PROJECT_NAME }}" >> $GITHUB_ENV
 
       - name: Install rust toolchain
         uses: dtolnay/rust-toolchain@stable
