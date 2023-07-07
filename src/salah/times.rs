@@ -307,13 +307,11 @@ impl PrayerTimes {
     }
     /// Get current prayer
     pub fn current(&self) -> Result<Prayer, crate::Error> {
-        Ok(self.current_time(time::now()))
+        self.current_time(time::now())
     }
     /// Helper function for `current`
-    fn current_time(&self, time: DateTime) -> Prayer {
-        // dummy value. it will replaced below
-        // just to avoid using `Option` or `Err`
-        let mut current_prayer = Prayer::Dohr;
+    fn current_time(&self, time: DateTime) -> Result<Prayer, crate::Error> {
+        let mut current_prayer: Option<Prayer> = None;
 
         let ranges = vec![
             // fajr, fajr_range
@@ -326,10 +324,15 @@ impl PrayerTimes {
         ];
         for (prayer, range) in ranges {
             if range.contains(&time) {
-                current_prayer = prayer;
+                current_prayer = Some(prayer);
             }
         }
-        current_prayer
+
+        if let Some(prayer) = current_prayer {
+            Ok(prayer)
+        } else {
+            Err(crate::Error::InvalidTime)
+        }
     }
 }
 
@@ -432,9 +435,12 @@ mod tests {
         let date = time::date(2021, 4, 19)?;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let prayer_times = prayer_times_with_date(config, date)?;
-        let current_prayer_time = expected_time(11, 52, 0)?;
+        let current_prayer_time = expected_time_with_date(date, 11, 52, 0)?;
 
-        assert_eq!(prayer_times.current_time(current_prayer_time), Prayer::Dohr);
+        assert_eq!(
+            prayer_times.current_time(current_prayer_time)?,
+            Prayer::Dohr
+        );
         Ok(())
     }
     #[test]
@@ -445,7 +451,7 @@ mod tests {
         let prayer_times = prayer_times_with_date(config, date)?;
         let current_prayer_time = expected_time_with_date(date, 15, 13, 0)?;
 
-        assert_eq!(prayer_times.current_time(current_prayer_time), Prayer::Asr);
+        assert_eq!(prayer_times.current_time(current_prayer_time)?, Prayer::Asr);
         Ok(())
     }
     #[test]
@@ -457,7 +463,7 @@ mod tests {
         let current_prayer_time = expected_time_with_date(date, 17, 51, 0)?;
 
         assert_eq!(
-            prayer_times.current_time(current_prayer_time),
+            prayer_times.current_time(current_prayer_time)?,
             Prayer::Maghreb
         );
         Ok(())
@@ -471,7 +477,7 @@ mod tests {
         let current_prayer_time = expected_time_with_date(date, 19, 1, 0)?;
 
         assert_eq!(
-            prayer_times.current_time(current_prayer_time),
+            prayer_times.current_time(current_prayer_time)?,
             Prayer::Ishaa
         );
         Ok(())
@@ -484,7 +490,10 @@ mod tests {
         let prayer_times = prayer_times_with_date(config, date)?;
         let current_prayer_time = expected_time_with_date(date, 4, 35, 0)?;
 
-        assert_eq!(prayer_times.current_time(current_prayer_time), Prayer::Fajr);
+        assert_eq!(
+            prayer_times.current_time(current_prayer_time)?,
+            Prayer::Fajr
+        );
         Ok(())
     }
     #[test]
@@ -495,7 +504,7 @@ mod tests {
         let current_prayer_time = expected_time_with_date(date, 8, 0, 0)?;
 
         assert_eq!(
-            prayer_times.current_time(current_prayer_time),
+            prayer_times.current_time(current_prayer_time)?,
             Prayer::Sherook
         );
         Ok(())
