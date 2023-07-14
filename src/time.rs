@@ -6,14 +6,18 @@ pub fn now() -> DateTime {
     Local::now().naive_local()
 }
 
-pub fn one_sec_before_midnight() -> DateTime {
-    let midnight = NaiveTime::from_hms_opt(23, 59, 59);
-    Local::now().date_naive().and_time(midnight.unwrap())
+pub fn one_sec_before_midnight() -> Option<DateTime> {
+    let midnight = NaiveTime::from_hms_opt(23, 59, 59)?;
+    let date = Local::now().date_naive();
+
+    Some(date.and_time(midnight))
 }
 
-pub fn one_sec_after_midnight() -> DateTime {
-    let midnight = NaiveTime::from_hms_opt(0, 0, 01);
-    Local::now().date_naive().and_time(midnight.unwrap())
+pub fn midnight() -> Option<DateTime> {
+    let midnight = NaiveTime::from_hms_opt(0, 0, 00)?;
+    let date = Local::now().date_naive();
+
+    Some(date.and_time(midnight))
 }
 
 pub fn today() -> Date {

@@ -275,8 +275,16 @@ impl PrayerTimes {
         let now_to_next;
         // Check if the next prayer is Fajr (Because Fajr time is less than current time)
         if next_prayer_time < time::now() {
-            now_to_next = (time::one_sec_before_midnight() - time::now())
-                + (next_prayer_time - time::one_sec_after_midnight());
+            let time_before_midnight = match time::one_sec_before_midnight() {
+                Some(before_midnight) => before_midnight - time::now(),
+                None => Duration::zero(),
+            };
+            let time_after_midnight = match time::midnight() {
+                Some(after_midnight) => next_prayer_time - after_midnight,
+                None => Duration::zero(),
+            };
+
+            now_to_next = time_before_midnight + time_after_midnight;
         } else {
             now_to_next = next_prayer_time - time::now();
         }
