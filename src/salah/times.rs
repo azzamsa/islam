@@ -312,7 +312,7 @@ impl PrayerTimes {
     fn current_time(&self, time: DateTime) -> Prayer {
         // dummy value. it will replaced below
         // just to avoid using `Option` or `Err`
-        let mut current_prayer = Prayer::Dohr;
+        let mut current_prayer = Prayer::Ishaa;
 
         let ranges = vec![
             // fajr, fajr_range
@@ -431,7 +431,7 @@ mod tests {
         let date = time::date(2021, 4, 19)?;
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let prayer_times = prayer_times_with_date(config, date)?;
-        let current_prayer_time = expected_time(11, 52, 0)?;
+        let current_prayer_time = expected_time_with_date(date, 11, 52, 0)?;
 
         assert_eq!(prayer_times.current_time(current_prayer_time), Prayer::Dohr);
         Ok(())
