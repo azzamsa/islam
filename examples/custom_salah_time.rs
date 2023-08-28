@@ -1,4 +1,4 @@
-use chrono::{Local, Timelike};
+use chrono::{NaiveDate, Timelike};
 
 use islam::salah::{Config, Location, Madhab, Method, PrayerSchedule};
 
@@ -7,11 +7,16 @@ fn example() -> Result<(), islam::Error> {
     let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32);
     let config = Config::new().with(Method::Egyptian, Madhab::Shafi);
 
-    // Tested against https://www.jadwalsholat.org/
-    let now = Local::now().date_naive();
+    // custom time
+    let now = NaiveDate::from_ymd_opt(2023, 8, 28)
+        .unwrap()
+        .and_hms_opt(1, 11, 00)
+        .unwrap();
+
     println!("Current Time: {}\n", now);
+    // Tested against https://www.jadwalsholat.org/
     let prayer_times = PrayerSchedule::new(jakarta_city)?
-        .on(now)?
+        .at(now)
         .with_config(config)
         .calculate()?;
 

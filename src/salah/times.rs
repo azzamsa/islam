@@ -28,7 +28,8 @@ impl Location {
 #[derive(Debug, Copy, Clone)]
 pub struct PrayerSchedule {
     location: Location,
-    date: Date,
+    time: DateTime,
+    custom_time: Option<DateTime>,
     config: Config,
 }
 
@@ -36,13 +37,18 @@ impl PrayerSchedule {
     pub fn new(location: Location) -> Result<Self, crate::Error> {
         Ok(Self {
             location,
-            date: time::today(),
+            time: time::now(),
+            custom_time: None,
             // default config
             config: Config::new(),
         })
     }
-    pub const fn on(mut self, date: Date) -> Self {
-        self.date = date;
+    pub fn on(mut self, date: Date) -> Result<Self, crate::Error> {
+        self.time = date.and_hms_opt(0, 0, 0).ok_or(crate::Error::InvalidTime)?;
+        Ok(self)
+    }
+    pub const fn at(mut self, time: DateTime) -> Self {
+        self.custom_time = Some(time);
         self
     }
     pub const fn with_config(mut self, config: Config) -> Self {
@@ -50,12 +56,13 @@ impl PrayerSchedule {
         self
     }
     pub fn calculate(&self) -> Result<PrayerTimes, crate::Error> {
-        PrayerTimes::new(self.date, self.location, self.config)
+        PrayerTimes::new(self.time, self.location, self.config, self.custom_time)
     }
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct PrayerTimes {
+    custom_time: Option<DateTime>,
     pub time: DateTime,
     pub location: Location,
     pub config: Config,
@@ -72,9 +79,12 @@ pub struct PrayerTimes {
 }
 
 impl PrayerTimes {
-    pub fn new(date: Date, location: Location, config: Config) -> Result<Self, crate::Error> {
-        let time = date.and_hms_opt(0, 0, 0).ok_or(crate::Error::InvalidTime)?;
-
+    pub fn new(
+        time: DateTime,
+        location: Location,
+        config: Config,
+        custom_time: Option<DateTime>,
+    ) -> Result<Self, crate::Error> {
         // dohr time must be calculated at first, every other time depends on it!
         let dohr_time = Self::dohr(time, location)?;
         let dohr = Self::hours_to_time(time, dohr_time, 0.0, config)?;
@@ -110,6 +120,7 @@ impl PrayerTimes {
         let fajr_tomorrow = Self::hours_to_time(tomorrow, fajr_time_tomorrow, 0.0, config)?;
 
         Ok(Self {
+            custom_time,
             time,
             location,
             config,
@@ -307,7 +318,11 @@ impl PrayerTimes {
     }
     /// Get current prayer
     pub fn current(&self) -> Result<Prayer, crate::Error> {
-        self.current_time(time::now())
+        let time = match self.custom_time {
+            None => time::now(),
+            Some(t) => t,
+        };
+        self.current_time(time)
     }
     /// Helper function for `current`
     fn current_time(&self, time: DateTime) -> Result<Prayer, crate::Error> {
@@ -351,14 +366,14 @@ mod tests {
     }
     fn prayer_times(config: Config) -> Result<PrayerTimes, crate::Error> {
         let prayer_times = PrayerSchedule::new(city()?)?
-            .on(date()?)
+            .on(date()?)?
             .with_config(config)
             .calculate()?;
         Ok(prayer_times)
     }
     fn prayer_times_with_date(config: Config, date: Date) -> Result<PrayerTimes, crate::Error> {
         let prayer_times = PrayerSchedule::new(city()?)?
-            .on(date)
+            .on(date)?
             .with_config(config)
             .calculate()?;
         Ok(prayer_times)
