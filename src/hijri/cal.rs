@@ -41,8 +41,8 @@ pub fn hijri_to_julian(date: Date) -> i32 {
 
 /// The Julian Day (JD) is a continuous count of days and fractions from the beginning of the year -4712,
 /// I begins at Greenwich mean noon (12h Universal Time)
-pub fn gregorian_to_julian(dt: Date) -> f32 {
-    let (day, mut month, mut year) = (dt.day(), dt.month() as u8, dt.year());
+pub fn gregorian_to_julian(date: Date) -> f32 {
+    let (day, mut month, mut year) = (date.day(), date.month() as u8, date.year());
 
     if month <= 2 {
         month += 12;

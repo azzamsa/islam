@@ -56,7 +56,7 @@ impl PrayerSchedule {
 
 #[derive(Debug, Copy, Clone)]
 pub struct PrayerTimes {
-    pub date: DateTime,
+    pub time: DateTime,
     pub location: Location,
     pub config: Config,
     pub dohr: DateTime,
@@ -73,43 +73,44 @@ pub struct PrayerTimes {
 
 impl PrayerTimes {
     pub fn new(date: Date, location: Location, config: Config) -> Result<Self, crate::Error> {
-        let date = date.and_hms_opt(0, 0, 0).ok_or(crate::Error::InvalidTime)?;
+        let time = date.and_hms_opt(0, 0, 0).ok_or(crate::Error::InvalidTime)?;
 
         // dohr time must be calculated at first, every other time depends on it!
-        let dohr_time = Self::dohr(date, location)?;
-        let dohr = Self::hours_to_time(date, dohr_time, 0.0, config)?;
+        let dohr_time = Self::dohr(time, location)?;
+        let dohr = Self::hours_to_time(time, dohr_time, 0.0, config)?;
 
-        let asr_time = Self::asr(date, location, config)?;
-        let asr = Self::hours_to_time(date, asr_time, 0.0, config)?;
+        let asr_time = Self::asr(time, location, config)?;
+        let asr = Self::hours_to_time(time, asr_time, 0.0, config)?;
 
-        let maghreb_time = Self::maghreb(date, location, config)?;
-        let maghreb = Self::hours_to_time(date, maghreb_time, 0.0, config)?;
+        let maghreb_time = Self::maghreb(time, location, config)?;
+        let maghreb = Self::hours_to_time(time, maghreb_time, 0.0, config)?;
 
-        let ishaa_time = Self::ishaa(date, location, config)?;
-        let ishaa = Self::hours_to_time(date, ishaa_time, 0.0, config)?;
+        let ishaa_time = Self::ishaa(time, location, config)?;
+        let ishaa = Self::hours_to_time(time, ishaa_time, 0.0, config)?;
 
-        let fajr_time = Self::fajr(date, location, config)?;
-        let fajr = Self::hours_to_time(date, fajr_time, 0.0, config)?;
+        let fajr_time = Self::fajr(time, location, config)?;
+        let fajr = Self::hours_to_time(time, fajr_time, 0.0, config)?;
 
-        let sherook_time = Self::sherook(date, location, config)?;
-        let sherook = Self::hours_to_time(date, sherook_time, 0.0, config)?;
+        let sherook_time = Self::sherook(time, location, config)?;
+        let sherook = Self::hours_to_time(time, sherook_time, 0.0, config)?;
 
         // These must be called after ishaa, since they depends on it
-        let first_third_of_night_time = Self::first_third_of_night(date, location, config)?;
+        let first_third_of_night_time = Self::first_third_of_night(time, location, config)?;
         let first_third_of_night =
-            Self::hours_to_time(date, first_third_of_night_time, 0.0, config)?;
-        let midnight_time = Self::midnight(date, location, config)?;
-        let midnight = Self::hours_to_time(date, midnight_time, 0.0, config)?;
+            Self::hours_to_time(time, first_third_of_night_time, 0.0, config)?;
 
-        let last_third_of_night_time = Self::last_third_of_night(date, location, config)?;
-        let last_third_of_night = Self::hours_to_time(date, last_third_of_night_time, 0.0, config)?;
+        let midnight_time = Self::midnight(time, location, config)?;
+        let midnight = Self::hours_to_time(time, midnight_time, 0.0, config)?;
 
-        let tomorrow = date + Duration::days(1);
+        let last_third_of_night_time = Self::last_third_of_night(time, location, config)?;
+        let last_third_of_night = Self::hours_to_time(time, last_third_of_night_time, 0.0, config)?;
+
+        let tomorrow = time + Duration::days(1);
         let fajr_time_tomorrow = Self::fajr(tomorrow, location, config)?;
         let fajr_tomorrow = Self::hours_to_time(tomorrow, fajr_time_tomorrow, 0.0, config)?;
 
         Ok(Self {
-            date,
+            time,
             location,
             config,
             dohr,
@@ -125,41 +126,41 @@ impl PrayerTimes {
         })
     }
     /// Get the Dohr
-    fn dohr(date: DateTime, location: Location) -> Result<f32, crate::Error> {
+    fn dohr(time: DateTime, location: Location) -> Result<f32, crate::Error> {
         let longitude_difference = Self::longitude_difference(location)?;
 
-        let julian_day = cal::gregorian_to_julian(date.date());
+        let julian_day = cal::gregorian_to_julian(time.date());
         let time_equation = cal::equation_of_time(julian_day);
         Ok((12.0 + longitude_difference) + (time_equation / 60.0))
     }
     /// Get the Asr time
-    fn asr(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
-        let dohr_time = Self::dohr(date, location)?;
-        let angle = Self::asr_angle(date, location, config)?;
-        Ok(dohr_time + Self::time_for_angle(angle, date, location)?)
+    fn asr(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+        let dohr_time = Self::dohr(time, location)?;
+        let angle = Self::asr_angle(time, location, config)?;
+        Ok(dohr_time + Self::time_for_angle(angle, time, location)?)
     }
     /// Get the Maghreb time
-    fn maghreb(date: DateTime, location: Location, _config: Config) -> Result<f32, crate::Error> {
-        let dohr_time = Self::dohr(date, location)?;
+    fn maghreb(time: DateTime, location: Location, _config: Config) -> Result<f32, crate::Error> {
+        let dohr_time = Self::dohr(time, location)?;
 
         let angle = 90.83333; // constants
-        Ok(dohr_time + Self::time_for_angle(angle, date, location)?)
+        Ok(dohr_time + Self::time_for_angle(angle, time, location)?)
     }
     /// Get the Ishaa time
-    fn ishaa(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
-        let dohr_time = Self::dohr(date, location)?;
+    fn ishaa(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+        let dohr_time = Self::dohr(time, location)?;
 
         // checking one of `all_year` or `ramadan` is enough
         // because if set, none of them would be 0.0
         if config.isha_interval.all_year > 0.0 {
-            let is_ramadan = HijriDate::from_gregorian(date.date(), 0).month == 9;
+            let is_ramadan = HijriDate::from_gregorian(time.date(), 0).month == 9;
             let time_after_maghreb = if is_ramadan {
                 config.isha_interval.ramdan / 60.0
             } else {
                 config.isha_interval.all_year / 60.0
             };
             let angle = 90.83333; //  Constants (maghreb angle)
-            Ok(time_after_maghreb + dohr_time + Self::time_for_angle(angle, date, location)?)
+            Ok(time_after_maghreb + dohr_time + Self::time_for_angle(angle, time, location)?)
         } else {
             // NOTE (upstream) why still need FixedInterval comparison?
             // let angle = if config.method == Method::FixedInterval {
@@ -168,12 +169,12 @@ impl PrayerTimes {
             //     config.ishaa_angle + 90.0
             // };
             let angle = config.ishaa_angle + 90.0;
-            Ok(dohr_time + Self::time_for_angle(angle, date, location)?)
+            Ok(dohr_time + Self::time_for_angle(angle, time, location)?)
         }
     }
     /// Get the Fajr time
-    fn fajr(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
-        let dohr_time = Self::dohr(date, location)?;
+    fn fajr(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+        let dohr_time = Self::dohr(time, location)?;
         // NOTE (upstream) wrong if-else?
         // let angle = if config.method == Method::FixedInterval {
         //     config.fajr_angle + 90.0
@@ -181,46 +182,46 @@ impl PrayerTimes {
         //     config.fajr_angle
         // };
         let angle = config.fajr_angle + 90.0;
-        Ok(dohr_time - Self::time_for_angle(angle, date, location)?)
+        Ok(dohr_time - Self::time_for_angle(angle, time, location)?)
     }
     /// Get the Sherook time
-    fn sherook(date: DateTime, location: Location, _config: Config) -> Result<f32, crate::Error> {
-        let dohr_time = Self::dohr(date, location)?;
+    fn sherook(time: DateTime, location: Location, _config: Config) -> Result<f32, crate::Error> {
+        let dohr_time = Self::dohr(time, location)?;
 
         let angle = 90.83333;
-        Ok(dohr_time - Self::time_for_angle(angle, date, location)?)
+        Ok(dohr_time - Self::time_for_angle(angle, time, location)?)
     }
     /// Get the third of night
     fn first_third_of_night(
-        date: DateTime,
+        time: DateTime,
         location: Location,
         config: Config,
     ) -> Result<f32, crate::Error> {
-        let maghreb_time = Self::maghreb(date, location, config)?;
-        let fajr_time = Self::fajr(date, location, config)?;
+        let maghreb_time = Self::maghreb(time, location, config)?;
+        let fajr_time = Self::fajr(time, location, config)?;
         Ok(maghreb_time + (24.0 - (maghreb_time - fajr_time)) / 3.0)
     }
     /// Midnight is the exact time between sunrise (Shorook) and sunset (Maghreb),
     /// It defines usually the end of Ishaa time
-    fn midnight(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
-        let maghreb_time = Self::maghreb(date, location, config)?;
-        let fajr_time = Self::fajr(date, location, config)?;
+    fn midnight(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+        let maghreb_time = Self::maghreb(time, location, config)?;
+        let fajr_time = Self::fajr(time, location, config)?;
         Ok(maghreb_time + (24.0 - (maghreb_time - fajr_time)) / 2.0)
     }
     /// Qiyam time starts after Ishaa directly, however, the best time for Qiyam is the last third of night
     fn last_third_of_night(
-        date: DateTime,
+        time: DateTime,
         location: Location,
         config: Config,
     ) -> Result<f32, crate::Error> {
-        let maghreb_time = Self::maghreb(date, location, config)?;
+        let maghreb_time = Self::maghreb(time, location, config)?;
 
-        let fajr_time = Self::fajr(date, location, config)?;
+        let fajr_time = Self::fajr(time, location, config)?;
         Ok(maghreb_time + (2.0 * (24.0 - (maghreb_time - fajr_time)) / 3.0))
     }
     /// Convert a decimal value (in hours) to time object
     fn hours_to_time(
-        date: DateTime,
+        time: DateTime,
         val: f32,
         shift: f32,
         config: Config,
@@ -230,7 +231,7 @@ impl PrayerTimes {
         let minute = (hour - (hour).floor()) * 60.0;
         let second = (minute - (minute).floor()) * 60.0;
         let hour = (hour + is_summer as f32).floor() % 24.0;
-        time::date(date.year(), date.month(), date.day())?
+        time::date(time.year(), time.month(), time.day())?
             .and_hms_opt(hour as u32, minute as u32, second as u32)
             .ok_or(crate::Error::InvalidTime)
     }
@@ -241,8 +242,8 @@ impl PrayerTimes {
         Ok((middle_longitude - location.longitude) / 15.0)
     }
     /// Get the angle angle for asr (according to choosen madhab)
-    fn asr_angle(date: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
-        let delta = Self::sun_declination(date)?;
+    fn asr_angle(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+        let delta = Self::sun_declination(time)?;
         let x = cal::dsin(location.latitude).mul_add(
             cal::dsin(delta),
             cal::dcos(location.latitude) * cal::dcos(delta),
@@ -252,15 +253,15 @@ impl PrayerTimes {
         Ok(90.0 - (180.0 / PI) * 2.0_f32.mul_add((1.0_f32).atan(), (x).atan()))
     }
     /// Get Times for "Fajr, Sherook, Asr, Maghreb, ishaa"
-    fn time_for_angle(angle: f32, date: DateTime, location: Location) -> Result<f32, crate::Error> {
-        let delta = Self::sun_declination(date)?;
+    fn time_for_angle(angle: f32, time: DateTime, location: Location) -> Result<f32, crate::Error> {
+        let delta = Self::sun_declination(time)?;
         let s = (cal::dcos(angle) - cal::dsin(location.latitude) * cal::dsin(delta))
             / (cal::dcos(location.latitude) * cal::dcos(delta));
         Ok((180.0 / PI * ((-s / (-s).mul_add(s, 1.0).sqrt()).atan() + PI / 2.0)) / 15.0)
     }
     /// Get sun declination
-    fn sun_declination(date: DateTime) -> Result<f32, crate::Error> {
-        let julian_day = cal::gregorian_to_julian(date.date());
+    fn sun_declination(time: DateTime) -> Result<f32, crate::Error> {
+        let julian_day = cal::gregorian_to_julian(time.date());
         let n = julian_day - 2_451_544.5;
         let epsilon = 23.44 - (0.000_000_4 * n);
         let l = 0.985_647_4_f32.mul_add(n, 280.466);
