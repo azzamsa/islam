@@ -85,6 +85,11 @@ impl PrayerTimes {
         config: Config,
         custom_time: Option<DateTime>,
     ) -> Result<Self, crate::Error> {
+        // let time = match custom_time {
+        //     None => time,
+        //     Some(t) => t,
+        // };
+
         // dohr time must be calculated at first, every other time depends on it!
         let dohr_time = Self::dohr(time, location)?;
         let dohr = Self::hours_to_time(time, dohr_time, 0.0, config)?;
@@ -285,7 +290,7 @@ impl PrayerTimes {
     pub fn time_remaining(&self) -> (u32, u32) {
         let now = match self.custom_time {
             None => time::now(),
-            Some(t) => t,
+            Some(custom) => custom,
         };
 
         let next_prayer_time = self.time(self.next());
@@ -327,7 +332,7 @@ impl PrayerTimes {
     pub fn current(&self) -> Prayer {
         let now = match self.custom_time {
             None => time::now(),
-            Some(t) => t,
+            Some(custom) => custom,
         };
         self.current_time(now).expect("Out of bounds")
     }

@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, Timelike};
+use chrono::NaiveDate;
 
 use islam::salah::{Config, Location, Madhab, Method, PrayerSchedule};
 
@@ -36,38 +36,13 @@ fn example() -> Result<(), islam::Error> {
         .with_config(config)
         .calculate()?;
 
-    let fajr = prayer_times.fajr;
-    println!("fajr: {}:{}:{}", fajr.hour(), fajr.minute(), fajr.second());
-
-    let sherook = prayer_times.sherook;
-    println!(
-        "sherook: {}:{}:{}",
-        sherook.hour(),
-        sherook.minute(),
-        sherook.second()
-    );
-
-    let dohr = prayer_times.dohr;
-    println!("dohr: {}:{}:{}", dohr.hour(), dohr.minute(), dohr.second());
-
-    let asr = prayer_times.asr;
-    println!("asr: {}:{}:{}", asr.hour(), asr.minute(), asr.second());
-
-    let maghreb = prayer_times.maghreb;
-    println!(
-        "maghreb: {}:{}:{}",
-        maghreb.hour(),
-        maghreb.minute(),
-        maghreb.second()
-    );
-
-    let ishaa = prayer_times.ishaa;
-    println!(
-        "ishaa: {}:{}:{}",
-        ishaa.hour(),
-        ishaa.minute(),
-        ishaa.second()
-    );
+    println!("fajr: {}", prayer_times.fajr);
+    println!("sherook: {}", prayer_times.sherook);
+    println!("dohr: {}", prayer_times.dohr);
+    println!("asr: {}", prayer_times.asr);
+    println!("maghreb: {}", prayer_times.maghreb);
+    println!("ishaa: {}", prayer_times.ishaa);
+    println!("fajr tomorrow: {}", prayer_times.fajr_tomorrow);
 
     let current_prayer = prayer_times.current();
     let (hour, minute) = prayer_times.time_remaining();

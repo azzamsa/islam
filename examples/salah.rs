@@ -48,6 +48,9 @@ fn example() -> Result<(), islam::Error> {
         ishaa.second()
     );
 
+    println!("ishaa: {}", prayer_times.ishaa);
+    println!("fajr tomorrow: {}", prayer_times.fajr_tomorrow);
+
     let current_prayer = prayer_times.current();
     let (hour, minute) = prayer_times.time_remaining();
     println!("\nCurrent Prayer");
