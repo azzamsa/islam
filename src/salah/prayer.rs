@@ -11,12 +11,13 @@ pub enum Prayer {
     Asr,
     Maghreb,
     Ishaa,
+    FajrTomorrow,
 }
 
 impl Prayer {
     pub fn name(self) -> Result<String, crate::Error> {
         let prayer_name = match self {
-            Self::Fajr => "Fajr",
+            Self::Fajr | Prayer::FajrTomorrow => "Fajr",
             Self::Sherook => "Sherook",
             Self::Dohr => {
                 if today().weekday() == Weekday::Fri {

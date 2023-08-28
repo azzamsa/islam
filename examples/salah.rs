@@ -9,7 +9,7 @@ fn example() -> Result<(), islam::Error> {
 
     // Tested against https://www.jadwalsholat.org/
     let now = Local::now().date_naive();
-    println!("Current Time: {}\n", now);
+    println!("Current date: {}\n", now);
     let prayer_times = PrayerSchedule::new(jakarta_city)?
         .on(now)?
         .with_config(config)
@@ -48,13 +48,18 @@ fn example() -> Result<(), islam::Error> {
         ishaa.second()
     );
 
-    let current_prayer = prayer_times.current()?;
-    let (hour, minute) = prayer_times.time_remaining()?;
+    let current_prayer = prayer_times.current();
+    let (hour, minute) = prayer_times.time_remaining();
     println!("\nCurrent Prayer");
-    println!("{}: ({:02}:{:02})", current_prayer.name()?, hour, minute);
+    println!(
+        "{}: ({:02}:{:02} left)",
+        current_prayer.name()?,
+        hour,
+        minute
+    );
 
     println!("\nNext Prayer");
-    let next_prayer = prayer_times.next()?;
+    let next_prayer = prayer_times.next();
     let time = prayer_times.time(next_prayer);
     let time = time.format("%H:%M").to_string();
     println!("{}: ({})", next_prayer.name()?, time);
