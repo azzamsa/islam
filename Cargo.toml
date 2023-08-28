@@ -11,8 +11,8 @@ repository = "https://github.com/azzamsa/islam"
 description = "Islamic library for Rust"
 
 [dependencies]
-chrono = "0.4.19"
-thiserror = "1.0"
+chrono = "0.4.26"
+thiserror = "1.0.47"
 
 [package.metadata.release]
 sign-commit = true
