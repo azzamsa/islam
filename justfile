@@ -37,12 +37,9 @@ lint:
     cargo clippy --all-targets --tests
 
 # Test the codebase.
-test: test-unit
+test:
     cargo test --doc
     cargo nextest run
-
-test-unit:
-    cargo nextest run --lib
 
 # Create a new release. Example `cargo-release release minor --tag-name v0.2.0`
 release level:
