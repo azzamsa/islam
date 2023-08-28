@@ -33,7 +33,7 @@ jobs:
         id: git-cliff
         with:
           config: configs/cliff.toml
-          args: -vv --strip header --current 
+          args: -vv --strip header --current
         env:
           OUTPUT: CHANGELOG.md.tmp
 
