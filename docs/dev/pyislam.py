@@ -1,4 +1,11 @@
 # For debugging purpose
+#
+# To run this code:
+#````
+# $ # activate your virtualenv
+# $ pip install islam
+# $ python3 docs/dev/pyislam.py
+#```
 
 from datetime import date
 
