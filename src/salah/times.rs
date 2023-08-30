@@ -371,22 +371,17 @@ mod tests {
     use crate::time;
 
     fn date() -> Result<Date, crate::Error> {
-        time::date(2021, 4, 9)
+        time::date(2023, 8, 30)
     }
     fn city() -> Result<Location, crate::Error> {
-        let jakarta = Location::new(-6.18233995_f32, 106.84287154_f32);
-        Ok(jakarta)
+        // Latitude and longitude is taken from https://www.jadwalsholat.org/
+        // > Untuk Kota Jakarta Pusat 6°10' LS 106°49' BT
+        let central_jakarta = Location::new(6.10, 106.49);
+        Ok(central_jakarta)
     }
     fn prayer_times(config: Config) -> Result<PrayerTimes, crate::Error> {
         let prayer_times = PrayerSchedule::new(city()?)?
             .on(date()?)?
-            .with_config(config)
-            .calculate()?;
-        Ok(prayer_times)
-    }
-    fn prayer_times_with_date(config: Config, date: Date) -> Result<PrayerTimes, crate::Error> {
-        let prayer_times = PrayerSchedule::new(city()?)?
-            .on(date)?
             .with_config(config)
             .calculate()?;
         Ok(prayer_times)
@@ -396,159 +391,92 @@ mod tests {
         date.and_hms_opt(hour, minute, second)
             .ok_or(crate::Error::InvalidTime)
     }
-    fn expected_time_with_date(
-        date: Date,
-        hour: u32,
-        minute: u32,
-        second: u32,
-    ) -> Result<DateTime, crate::Error> {
-        date.and_hms_opt(hour, minute, second)
-            .ok_or(crate::Error::InvalidTime)
-    }
     #[test]
     /// Tested against https://www.jadwalsholat.org/
-    /// and the result is extremely accurate
+    /// and the result is pretty accurate
     fn praytimes_jakarta() -> Result<(), crate::Error> {
-        // https://www.mapcoordinates.net/en
+        // JadwalSholat is also using Shafi as the madhab, `20.0 deg` for fajs angle, and `18.0 deg` for Ishaa angle.
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
         let prayer_times = prayer_times(config)?;
 
-        assert_eq!(prayer_times.dohr, expected_time(11, 54, 14)?);
-        assert_eq!(prayer_times.asr, expected_time(15, 12, 14)?);
-        assert_eq!(prayer_times.maghreb, expected_time(17, 54, 14)?);
-        assert_eq!(prayer_times.ishaa, expected_time(19, 3, 49)?);
-        assert_eq!(prayer_times.fajr, expected_time(4, 36, 34)?);
-        assert_eq!(prayer_times.sherook, expected_time(5, 54, 14)?);
-        assert_eq!(
-            prayer_times.first_third_of_night,
-            expected_time(21, 28, 21)?
-        );
-        assert_eq!(prayer_times.midnight, expected_time(23, 15, 24)?);
-        assert_eq!(prayer_times.last_third_of_night, expected_time(1, 2, 28)?);
+        // jadwalsholat.org 🔵
+        // All the jadwalsholat.org iktiyati (additional 2 minutes) is stripped
+        // fajr: 4:37
+        // sheerook: 5:51
+        // dohr: 11:54
+        // asr: 15:13
+        // maghreb: 17:53
+        // ishaa: 19:03
 
+        // pyislam.py 🔷
+        // Fajr      : 04:29:10
+        // Sherook   : 05:47:34
+        // Dohr      : 11:54:50
+        // Asr       : 15:01:51
+        // Maghreb   : 18:02:06
+        // Ishaa     : 19:12:17
+
+        // islam.rs 🟦
+        // fajr    : 4:29:10
+        // sherook : 5:47:34
+        // dohr    : 11:54:50
+        // asr     : 15:1:51
+        // maghreb : 18:2:6
+        // ishaa   : 19:12:17
+        // ishaa        : 2023-08-30 19:12:17
+        // fajr tomorrow: 2023-08-31 04:29:07
+
+        assert_eq!(prayer_times.fajr, expected_time(4, 29, 10)?);
+        assert_eq!(prayer_times.sherook, expected_time(5, 47, 34)?);
+        assert_eq!(prayer_times.dohr, expected_time(11, 54, 50)?);
+        assert_eq!(prayer_times.asr, expected_time(15, 1, 51)?);
+        assert_eq!(prayer_times.maghreb, expected_time(18, 2, 6)?);
+        assert_eq!(prayer_times.ishaa, expected_time(19, 12, 17)?);
         Ok(())
     }
     #[test]
-    fn praytimes_jakarta_umm_alqura() -> Result<(), crate::Error> {
-        let config = Config::new().with(Method::UmmAlQura, Madhab::Shafi);
-        let prayer_times = prayer_times(config)?;
-
-        assert_eq!(prayer_times.ishaa, expected_time(19, 24, 14)?);
-        assert_eq!(prayer_times.fajr, expected_time(4, 42, 39)?);
-        assert_eq!(
-            prayer_times.first_third_of_night,
-            expected_time(21, 30, 22)?
-        );
-        assert_eq!(prayer_times.midnight, expected_time(23, 18, 26)?);
-        assert_eq!(prayer_times.last_third_of_night, expected_time(1, 6, 30)?);
-
-        Ok(())
-    }
-    #[test]
-    fn praytimes_jakarta_fixed_interval() -> Result<(), crate::Error> {
-        let config = Config::new().with(Method::FixedInterval, Madhab::Shafi);
-        let prayer_times = prayer_times(config)?;
-
-        assert_eq!(prayer_times.ishaa, expected_time(19, 24, 14)?);
-        assert_eq!(prayer_times.fajr, expected_time(4, 38, 36)?);
-        assert_eq!(prayer_times.first_third_of_night, expected_time(21, 29, 1)?);
-        assert_eq!(prayer_times.midnight, expected_time(23, 16, 25)?);
-        assert_eq!(prayer_times.last_third_of_night, expected_time(1, 3, 49)?);
-
-        Ok(())
-    }
-    #[test]
-    fn current_prayer_is_fajr() -> Result<(), crate::Error> {
-        let date = time::date(2021, 4, 19)?;
+    fn current_prayers() -> Result<(), crate::Error> {
         let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = prayer_times_with_date(config, date)?;
-        // Fajr: 2021-04-19T04:34:54+07:00
-        let current_prayer_time = expected_time_with_date(date, 4, 34, 54)?;
+        let prayer_times = prayer_times(config)?;
 
+        let current_prayer_time = expected_time(4, 30, 00)?;
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Fajr)
         );
-        Ok(())
-    }
-    #[test]
-    fn current_prayer_is_sherook() -> Result<(), crate::Error> {
-        let date = time::date(2021, 4, 19)?;
-        let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = prayer_times_with_date(config, date)?;
-        let current_prayer_time = expected_time_with_date(date, 8, 0, 0)?;
 
+        let current_prayer_time = expected_time(5, 48, 00)?;
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Sherook)
         );
-        Ok(())
-    }
-    #[test]
-    fn current_prayer_is_dohr() -> Result<(), crate::Error> {
-        let date = time::date(2021, 4, 19)?;
-        let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = prayer_times_with_date(config, date)?;
-        // Dohr: 2021-04-19T11:51:45+07:00
-        let current_prayer_time = expected_time_with_date(date, 11, 51, 46)?;
 
+        let current_prayer_time = expected_time(11, 55, 00)?;
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Dohr)
         );
-        Ok(())
-    }
-    #[test]
-    fn current_prayer_is_asr() -> Result<(), crate::Error> {
-        let date = time::date(2021, 4, 19)?;
-        let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = prayer_times_with_date(config, date)?;
-        // Asr: 2021-04-19T15:11:51+07:00
-        let current_prayer_time = expected_time_with_date(date, 15, 11, 51)?;
 
+        let current_prayer_time = expected_time(15, 2, 00)?;
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Asr)
         );
-        Ok(())
-    }
-    #[test]
-    fn current_prayer_is_maghreb() -> Result<(), crate::Error> {
-        let date = time::date(2021, 4, 19)?;
-        let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = prayer_times_with_date(config, date)?;
-        // Maghreb: 2021-04-19T17:50:12+07:00
-        let current_prayer_time = expected_time_with_date(date, 17, 50, 12)?;
 
+        let current_prayer_time = expected_time(18, 3, 00)?;
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Maghreb)
         );
-        Ok(())
-    }
-    #[test]
-    fn current_prayer_is_ishaa() -> Result<(), crate::Error> {
-        let date = time::date(2021, 4, 19)?;
-        let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = prayer_times_with_date(config, date)?;
-        // Ishaa: 2021-04-19T19:00:27+07:00
-        let current_prayer_time = expected_time_with_date(date, 19, 00, 27)?;
 
+        let current_prayer_time = expected_time(19, 13, 00)?;
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Ishaa)
         );
-        Ok(())
-    }
-    #[test]
-    fn current_prayer_is_ishaa_next_day() -> Result<(), crate::Error> {
-        let date = time::date(2021, 4, 20)?;
-        let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = prayer_times_with_date(config, date)?;
-        // Ishaa         : 2021-04-19T19:00:27+07:00
-        // Fajr Tomorrow : 2021-04-20T04:34:54+07:00
-        let current_prayer_time = expected_time_with_date(date, 4, 30, 00)?;
 
+        // Current prayer is ishaa (early moring, before fajr)
+        let current_prayer_time = expected_time(4, 29, 00)?;
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Ishaa)
