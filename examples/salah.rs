@@ -1,4 +1,4 @@
-use chrono::{Local, Timelike};
+use chrono::Timelike;
 
 use islam::salah::{Config, Location, Madhab, Method, PrayerSchedule};
 
@@ -6,9 +6,13 @@ fn example() -> Result<(), islam::Error> {
     let central_jakarta = Location::new(6.10, 106.49);
     let config = Config::new().with(Method::Singapore, Madhab::Shafi);
 
-    let now = Local::now().date_naive();
+    // Use `on()` for specific date
+    // ```
+    // let now = Local::now().date_naive();
+    // .on(now)?
+    // .with_config(config)
+    // ```
     let prayer_times = PrayerSchedule::new(central_jakarta)?
-        .on(now)?
         .with_config(config)
         .calculate()?;
 

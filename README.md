@@ -43,7 +43,6 @@ use islam::salah::{Config, Location, Madhab, Method, PrayerSchedule};
 let central_jakarta = Location::new(6.1, 106.49);
 let config = Config::new().with(Method::Singapore, Madhab::Shafi);
 let prayer_times = PrayerSchedule::new(central_jakarta)?
-    .on(Local::now().date_naive())?
     .with_config(config)
     .calculate()?;
 ```
