@@ -40,11 +40,10 @@ So here it is, `islam` is born!
 use chrono::Local;
 use islam::salah::{Config, Location, Madhab, Method, PrayerSchedule};
 
-// https://www.mapcoordinates.net/en
-let jakarta_city = Location::new(6.182_34_f32, 106.842_87_f32);
-let config = Config::new().with(Method::Egyptian, Madhab::Shafi);
-let prayer_times = PrayerSchedule::new(jakarta_city)?
-    .on(Local::now().date_naive())
+let central_jakarta = Location::new(6.1, 106.49);
+let config = Config::new().with(Method::Singapore, Madhab::Shafi);
+let prayer_times = PrayerSchedule::new(central_jakarta)?
+    .on(Local::now().date_naive())?
     .with_config(config)
     .calculate()?;
 ```
