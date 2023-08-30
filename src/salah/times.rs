@@ -85,10 +85,10 @@ impl PrayerTimes {
         config: Config,
         custom_time: Option<DateTime>,
     ) -> Result<Self, crate::Error> {
-        // let time = match custom_time {
-        //     None => time,
-        //     Some(t) => t,
-        // };
+        let time = match custom_time {
+            None => time,
+            Some(t) => t,
+        };
 
         // dohr time must be calculated at first, every other time depends on it!
         let dohr_time = Self::dohr(time, location)?;
@@ -288,10 +288,15 @@ impl PrayerTimes {
     }
     /// Remaining time to next prayer
     pub fn time_remaining(&self) -> (u32, u32) {
-        let now = match self.custom_time {
+        let mut now = match self.custom_time {
             None => time::now(),
             Some(custom) => custom,
         };
+
+        // Special case for custom hour
+        if self.custom_time.is_some() && self.next() == Prayer::FajrTomorrow {
+            now += Duration::days(1)
+        }
 
         let next_prayer_time = self.time(self.next());
         let now_to_next = next_prayer_time - now;
@@ -373,16 +378,30 @@ mod tests {
     fn date() -> Result<Date, crate::Error> {
         time::date(2023, 8, 30)
     }
-    fn city() -> Result<Location, crate::Error> {
+    /// Central jakarta
+    fn city() -> Location {
         // Latitude and longitude is taken from https://www.jadwalsholat.org/
         // > Untuk Kota Jakarta Pusat 6°10' LS 106°49' BT
-        let central_jakarta = Location::new(6.10, 106.49);
-        Ok(central_jakarta)
+        Location::new(6.10, 106.49)
     }
-    fn prayer_times(config: Config) -> Result<PrayerTimes, crate::Error> {
-        let prayer_times = PrayerSchedule::new(city()?)?
+    fn config() -> Config {
+        // JadwalSholat is also using Shafi as the madhab, `20.0 deg` for fajs angle, and `18.0 deg` for Ishaa angle.
+        Config::new().with(Method::Singapore, Madhab::Shafi)
+    }
+    fn prayer_times() -> Result<PrayerTimes, crate::Error> {
+        let prayer_times = PrayerSchedule::new(city())?
             .on(date()?)?
-            .with_config(config)
+            .with_config(config())
+            .calculate()?;
+        Ok(prayer_times)
+    }
+    fn prayer_times_at(time: (u32, u32, u32)) -> Result<PrayerTimes, crate::Error> {
+        let time = date()?
+            .and_hms_opt(time.0, time.1, time.2)
+            .ok_or(crate::Error::InvalidTime)?;
+        let prayer_times = PrayerSchedule::new(city())?
+            .at(time)
+            .with_config(config())
             .calculate()?;
         Ok(prayer_times)
     }
@@ -395,10 +414,7 @@ mod tests {
     /// Tested against https://www.jadwalsholat.org/
     /// and the result is pretty accurate
     fn praytimes_jakarta() -> Result<(), crate::Error> {
-        // JadwalSholat is also using Shafi as the madhab, `20.0 deg` for fajs angle, and `18.0 deg` for Ishaa angle.
-        let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = prayer_times(config)?;
-
+        let prayer_times = prayer_times()?;
         // jadwalsholat.org 🔵
         // All the jadwalsholat.org iktiyati (additional 2 minutes) is stripped
         // fajr: 4:37
@@ -436,8 +452,7 @@ mod tests {
     }
     #[test]
     fn current_prayers() -> Result<(), crate::Error> {
-        let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-        let prayer_times = prayer_times(config)?;
+        let prayer_times = prayer_times()?;
 
         let current_prayer_time = expected_time(4, 30, 00)?;
         assert_eq!(
@@ -475,12 +490,46 @@ mod tests {
             Some(Prayer::Ishaa)
         );
 
-        // Current prayer is ishaa (early moring, before fajr)
+        // Current prayer is ishaa (after midnight/early moring, before fajr)
         let current_prayer_time = expected_time(4, 29, 00)?;
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Ishaa)
         );
+        Ok(())
+    }
+    #[test]
+    fn remaining_time() -> Result<(), crate::Error> {
+        // Right after Fajr
+        let prayer_times = prayer_times_at((4, 30, 0))?;
+        assert_eq!(prayer_times.current(), Prayer::Fajr);
+        assert_eq!(prayer_times.time_remaining(), (1, 18));
+
+        // 2 minutes before Sherook
+        let prayer_times = prayer_times_at((5, 46, 0))?;
+        assert_eq!(prayer_times.current(), Prayer::Fajr);
+        assert_eq!(prayer_times.time_remaining(), (0, 2));
+
+        // 2 minutes before Asr
+        let prayer_times = prayer_times_at((15, 0, 0))?;
+        assert_eq!(prayer_times.current(), Prayer::Dohr);
+        assert_eq!(prayer_times.time_remaining(), (0, 2));
+
+        // 2 minutes before Maghreb
+        let prayer_times = prayer_times_at((18, 0, 0))?;
+        assert_eq!(prayer_times.current(), Prayer::Asr);
+        assert_eq!(prayer_times.time_remaining(), (0, 2));
+
+        // 2 minutes before Ishaa
+        let prayer_times = prayer_times_at((19, 10, 0))?;
+        assert_eq!(prayer_times.current(), Prayer::Maghreb);
+        assert_eq!(prayer_times.time_remaining(), (0, 2));
+
+        // Current prayer is ishaa (after midnight/early moring, before fajr)
+        let prayer_times = prayer_times_at((4, 27, 0))?;
+        assert_eq!(prayer_times.current(), Prayer::Ishaa);
+        assert_eq!(prayer_times.time_remaining(), (0, 2));
+
         Ok(())
     }
 }
