@@ -7,6 +7,8 @@ fn custom_hour() -> Result<(), islam::Error> {
     let config = Config::new().with(Method::Singapore, Madhab::Shafi);
     let now = NaiveDate::from_ymd_opt(2020, 9, 1)
         .unwrap()
+        // Current prayer is ishaa (before midnight)
+        // .and_hms_opt(20, 28, 00)
         // Current prayer is ishaa (after midnight/early moring, before fajr)
         .and_hms_opt(4, 28, 00)
         .unwrap();

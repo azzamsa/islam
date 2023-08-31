@@ -293,9 +293,12 @@ impl PrayerTimes {
             Some(custom) => custom,
         };
 
-        // Special case for custom hour
-        if self.custom_time.is_some() && self.next() == Prayer::FajrTomorrow {
-            now += Duration::days(1)
+        // Special case if the next prayer time is on the following day
+        if self.next() == Prayer::FajrTomorrow {
+            // Current time is after midnight
+            if now.time() < self.fajr_tomorrow.time() {
+                now += Duration::days(1);
+            }
         }
 
         let next_prayer_time = self.time(self.next());
