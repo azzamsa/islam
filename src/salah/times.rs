@@ -299,10 +299,8 @@ impl PrayerTimes {
         }
 
         let next_prayer_time = self.time(self.next());
-        let now_to_next = next_prayer_time - now;
-        let now_to_next = now_to_next.num_seconds() as f64;
-
-        let whole: f64 = now_to_next / 60.0 / 60.0;
+        let duration = next_prayer_time - now;
+        let whole: f64 = duration.num_seconds() as f64 / 60.0 / 60.0;
         let fract = whole.fract();
         let hours = whole.trunc() as u32;
         let minutes = (fract * 60.0).round() as u32;
