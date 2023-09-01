@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2023-09-01
+
+### Bug fixes
+
+- Wrong remaining time after ishaa salah ([64b2b7d](https://github.com/azzamsa/islam/commit/64b2b7d58de634fc3053f73189e610d8578020b3))
+
 ## [3.0.0] - 2023-08-30
 
 ### Features
