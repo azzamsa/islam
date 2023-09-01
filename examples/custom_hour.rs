@@ -5,7 +5,7 @@ use islam::salah::{Config, Location, Madhab, Method, PrayerSchedule};
 fn custom_hour() -> Result<(), islam::Error> {
     let central_jakarta = Location::new(6.10, 106.49);
     let config = Config::new().with(Method::Singapore, Madhab::Shafi);
-    let now = NaiveDate::from_ymd_opt(2020, 9, 1)
+    let now = NaiveDate::from_ymd_opt(2023, 8, 30)
         .unwrap()
         // Current prayer is ishaa (before midnight)
         // .and_hms_opt(20, 28, 00)

@@ -68,6 +68,14 @@ jobs:
       - name: Run tests
         run: just test
 
+      - name: Use `libfaketime`
+        run: |
+           sudo apt-get install --yes faketime
+           faketime --version
+
+      - name: Run more tests
+        run: just _test-ignored
+
   build:
     name: Build for ${{ matrix.build }}
     runs-on: ${{ matrix.os }}
@@ -107,6 +115,13 @@ jobs:
           rustc -V
 
       - name: Install musl-tools
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            --allow-unauthenticated musl-tools
+
+      - name: Use `libfaketime`
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt-get update
