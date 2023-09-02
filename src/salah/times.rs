@@ -87,7 +87,7 @@ impl PrayerTimes {
     ) -> Result<Self, crate::Error> {
         let time = match custom_time {
             None => time,
-            Some(t) => t,
+            Some(custom) => custom,
         };
 
         // dohr time must be calculated at first, every other time depends on it!
@@ -288,17 +288,11 @@ impl PrayerTimes {
     }
     /// Remaining time to next prayer
     pub fn time_remaining(&self) -> (u32, u32) {
-        let mut now = match self.custom_time {
-            None => time::now(),
-            Some(custom) => custom,
-        };
+        let mut now = self.now();
 
         // Special case if the next prayer time is on the following day
-        if self.next() == Prayer::FajrTomorrow {
-            // Current time is after midnight
-            if now.time() < self.fajr_tomorrow.time() {
-                now += Duration::days(1);
-            }
+        if self.next() == Prayer::FajrTomorrow && self.is_after_midnight() {
+            now += Duration::days(1);
         }
 
         let next_prayer_time = self.time(self.next());
@@ -319,8 +313,14 @@ impl PrayerTimes {
             Prayer::Dohr => Prayer::Asr,
             Prayer::Asr => Prayer::Maghreb,
             Prayer::Maghreb => Prayer::Ishaa,
-            Prayer::Ishaa => Prayer::FajrTomorrow,
-            _ => Prayer::FajrTomorrow,
+            Prayer::Ishaa => {
+                if self.is_after_midnight() {
+                    Prayer::Fajr
+                } else {
+                    Prayer::FajrTomorrow
+                }
+            }
+            Prayer::FajrTomorrow => Prayer::Fajr,
         }
     }
     /// Get prayer's time
@@ -368,6 +368,18 @@ impl PrayerTimes {
         }
 
         current_prayer
+    }
+    /// Current time is after midnight
+    fn is_after_midnight(&self) -> bool {
+        self.now().time() <= self.fajr_tomorrow.time()
+    }
+    /// Get the current time
+    /// It can be real current time or user specified time
+    fn now(&self) -> DateTime {
+        match self.custom_time {
+            None => time::now(),
+            Some(custom) => custom,
+        }
     }
 }
 
@@ -507,6 +519,17 @@ mod tests {
         Ok(())
     }
     #[test]
+    fn next_prayers() -> Result<(), crate::Error> {
+        // Before midnight
+        let prayer_times = prayer_times_at((20, 00, 0))?;
+        assert_eq!(prayer_times.next(), Prayer::FajrTomorrow);
+
+        // After midnight
+        let prayer_times = prayer_times_at((1, 00, 0))?;
+        assert_eq!(prayer_times.next(), Prayer::Fajr);
+        Ok(())
+    }
+    #[test]
     fn remaining_time() -> Result<(), crate::Error> {
         // Right after Fajr
         let prayer_times = prayer_times_at((4, 30, 0))?;
@@ -561,7 +584,7 @@ mod tests {
         //  faketime '2023-8-31 02:00:00'
         let prayer_times = prayer_times()?;
         assert_eq!(prayer_times.current(), Prayer::Ishaa);
-        assert_eq!(prayer_times.next(), Prayer::FajrTomorrow);
+        assert_eq!(prayer_times.next(), Prayer::Fajr);
         assert_eq!(prayer_times.time_remaining(), (2, 29));
         Ok(())
     }
