@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0] - 2023-09-03
+
+### Bug fixes
+
+- Next prayer after midnight should be `fajr` ([634b5d9](https://github.com/azzamsa/islam/commit/634b5d9c0d1b7036f790112882986547f4c07ee5))
+
 ## [3.1.0] - 2023-09-01
 
 ### Bug fixes
