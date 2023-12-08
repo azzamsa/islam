@@ -3,12 +3,12 @@ use crate::salah::config::{Config, IshaInterval};
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Method {
     /// University of Islamic Sciences, Karachi (UISK)
-    /// Ministry of Religious Affaires, Tunisia
+    /// Ministry of Religious Affairs, Tunisia
     /// France - Angle 18°
     Karachi,
 
     /// Muslim World League (MWL)
-    /// Ministry of Religious Affaires and Awqaf, Algeria
+    /// Ministry of Religious Affairs and Awqaf, Algeria
     /// Presidency of Religious Affairs, Turkey
     MuslimWorldLeague,
 
@@ -25,7 +25,7 @@ pub enum Method {
     /// French Muslims (ex-UOIF)
     French,
 
-    /// Islamic Religious Council of Signapore (MUIS)
+    /// Islamic Religious Council of Singapore (MUIS)
     /// Department of Islamic Advancements of Malaysia (JAKIM)
     // Ministry of Religious Affairs of Indonesia (KEMENAG)
     Singapore,

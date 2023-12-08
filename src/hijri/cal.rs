@@ -21,10 +21,10 @@ pub fn equation_of_time(julian_day: f32) -> f32 {
         dsin(3.0 * g),
         1.9148_f32.mul_add(dsin(g), 0.02 * dsin(2.0 * g)),
     );
-    let lamda = 0.985_600_3_f32.mul_add(n, 280.47) + c;
+    let lambda = 0.985_600_3_f32.mul_add(n, 280.47) + c;
     let r = 0.0014_f32.mul_add(
-        dsin(6.0 * lamda),
-        (-2.468_f32).mul_add(dsin(2.0 * lamda), 0.053 * dsin(4.0 * lamda)),
+        dsin(6.0 * lambda),
+        (-2.468_f32).mul_add(dsin(2.0 * lambda), 0.053 * dsin(4.0 * lambda)),
     );
     (c + r) * 4.0
 }

@@ -257,7 +257,7 @@ impl PrayerTimes {
         let middle_longitude = offset_hour as f32 * 15.0;
         Ok((middle_longitude - location.longitude) / 15.0)
     }
-    /// Get the angle angle for asr (according to choosen madhab)
+    /// Get the angle angle for asr (according to chosen madhab)
     fn asr_angle(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
         let delta = Self::sun_declination(time)?;
         let x = cal::dsin(location.latitude).mul_add(
@@ -282,8 +282,8 @@ impl PrayerTimes {
         let epsilon = 23.44 - (0.000_000_4 * n);
         let l = 0.985_647_4_f32.mul_add(n, 280.466);
         let g = 0.985_600_3_f32.mul_add(n, 357.528);
-        let lamda = 0.02_f32.mul_add(cal::dsin(2.0 * g), 1.915_f32.mul_add(cal::dsin(g), l));
-        let x = cal::dsin(epsilon) * cal::dsin(lamda);
+        let lambda = 0.02_f32.mul_add(cal::dsin(2.0 * g), 1.915_f32.mul_add(cal::dsin(g), l));
+        let x = cal::dsin(epsilon) * cal::dsin(lambda);
         Ok((180.0 / (4.0 * (1.0_f32).atan())) * (x / (-x).mul_add(x, 1.0).sqrt()).atan())
     }
     /// Remaining time to next prayer
