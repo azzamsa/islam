@@ -1,8 +1,9 @@
 #!/usr/bin/env -S just --justfile
 
 alias d := dev
-alias t := test
+alias f := fmt
 alias l := lint
+alias t := test
 
 # List available commands.
 _default:
@@ -10,7 +11,7 @@ _default:
 
 # Setup the development tools.
 _setup-dev:
-    just _cargo-install 'cargo-nextest git-cliff cargo-watch dprint cargo-edit cargo-outdated spacer'
+    just _cargo-install 'cargo-nextest git-cliff dprint cargo-edit cargo-outdated bacon typos-cli'
 
 # Tasks to make the code-base comply with the rules. Mostly used in git hooks.
 comply: _doc-check fmt lint test
@@ -20,7 +21,7 @@ check: fmt-check lint test
 
 # Develop the app.
 dev:
-    cargo watch -x 'clippy --all-targets --all-features' | spacer
+    bacon
 
 # Format the codebase.
 fmt:
@@ -35,6 +36,7 @@ fmt-check:
 # Lint the codebase.
 lint:
     cargo clippy --all-targets --tests
+    typos --config configs/typos.toml
 
 # Test the codebase.
 test:
