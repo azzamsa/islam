@@ -12,8 +12,8 @@ rust-version = "1.77.1"
 description = "Islamic library for Rust"
 
 [dependencies]
-chrono = "0.4.31"
-thiserror = "1.0.50"
+chrono = "0.4.37"
+thiserror = "1.0.58"
 
 [package.metadata.release]
 sign-commit = true
