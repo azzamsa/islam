@@ -1,8 +1,8 @@
 <div align="center">
 <h1>islam</h1>
 
-<a href="https://github.com/azzamsa/islam/workflows/ci.yml">
-<img src="https://github.com/azzamsa/islam/workflows/ci/badge.svg">
+<a href="https://github.com/azzamsa/islam/actions/workflows/ci.yml">
+<img src="https://github.com/azzamsa/islam/actions/workflows/ci.yml/badge.svg">
 </a>
 <a href="https://crates.io/crates/islam">
 <img src="https://img.shields.io/crates/v/islam.svg">
