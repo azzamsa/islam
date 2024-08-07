@@ -1,8 +1,6 @@
-use chrono::Datelike;
+use jiff::civil;
 
-use crate::Date;
-
-// Trigonometric functions takes values in degree
+//Trigonometric functions takes values in degree
 pub fn dcos(deg: f32) -> f32 {
     deg.to_radians().cos()
 }
@@ -14,8 +12,8 @@ pub fn dsin(deg: f32) -> f32 {
 //  Hijri date calculation methods
 
 /// Get equation of time
-pub fn equation_of_time(julian_day: f32) -> f32 {
-    let n = julian_day - 2_451_544.5;
+pub fn equation_of_time(julian_date: f32) -> f32 {
+    let n = julian_date - 2_451_544.5;
     let g = 0.985_600_3_f32.mul_add(n, 357.528);
     let c = 0.0003_f32.mul_add(
         dsin(3.0 * g),
@@ -29,19 +27,16 @@ pub fn equation_of_time(julian_day: f32) -> f32 {
     (c + r) * 4.0
 }
 
-pub fn hijri_to_julian(date: Date) -> i32 {
-    ((((11 * date.year() + 3) / 30) as f32).floor()
-        + ((354 * date.year()) as f32).floor()
-        + ((30 * date.month() as u8) as f32).floor()
-        - (((date.month() as u8 - 1) / 2) as f32).floor()
-        + date.day() as f32
-        + 1_948_440.0
-        - 385.0) as i32
+pub fn hijri_to_julian(date: civil::Date) -> i32 {
+    let year = i32::from(date.year());
+    let month = i32::from(date.month());
+    let day = i32::from(date.day());
+    ((11 * year + 3) / 30) + (354 * year) + (30 * month) - ((month - 1) / 2) + day + 1_948_440 - 385
 }
 
 /// The Julian Day (JD) is a continuous count of days and fractions from the beginning of the year -4712,
 /// I begins at Greenwich mean noon (12h Universal Time)
-pub fn gregorian_to_julian(date: Date) -> f32 {
+pub fn gregorian_to_julian(date: civil::Date) -> f32 {
     let (day, mut month, mut year) = (date.day(), date.month() as u8, date.year());
 
     if month <= 2 {
@@ -68,8 +63,8 @@ pub fn gregorian_to_julian(date: Date) -> f32 {
         - 1524.5
 }
 
-pub fn julian_to_hijri(julian_day: i32, correction_val: i32) -> (i32, u32, u32) {
-    let mut l = ((julian_day as f32 + correction_val as f32).floor() as i32 - 1_948_440) + 10632;
+pub fn julian_to_hijri(julian_date: i32, correction_val: i32) -> civil::Date {
+    let mut l = ((julian_date as f32 + correction_val as f32).floor() as i32 - 1_948_440) + 10632;
     let n = (((l - 1) / 10631) as f32).floor();
     l = l - (10631_f32 * n) as i32 + 354;
     let j = (((10985 - l) / 5316) as f32).floor().mul_add(
@@ -87,13 +82,13 @@ pub fn julian_to_hijri(julian_day: i32, correction_val: i32) -> (i32, u32, u32) 
     let day = ((l - ((709_f32 * month) as i32 / 24)) as f32).floor();
     let year = ((30_f32.mul_add(n, j) as i32 - 30) as f32).floor();
 
-    (year as i32, month as u32, day as u32)
+    civil::date(year as i16, month as i8, day as i8)
 }
 
-pub fn julian_to_gregorian(mut julian_day: f32) -> (i32, u32, u32) {
-    julian_day = (julian_day as i32 + 5) as f32;
-    let z = julian_day.floor() as i32;
-    let f = julian_day as i32 - z;
+pub fn julian_to_gregorian(mut julian_date: f32) -> civil::Date {
+    julian_date = (julian_date as i32 + 5) as f32;
+    let z = julian_date.floor() as i32;
+    let f = julian_date as i32 - z;
 
     let a = if z < 2_299_161 {
         z
@@ -116,13 +111,14 @@ pub fn julian_to_gregorian(mut julian_day: f32) -> (i32, u32, u32) {
     // Calculate the year
     let year = c as i32 - if month > 2 { 4716 } else { 4715 };
 
-    (year, month as u32, day as u32)
+    civil::date(year as i16, month as i8, day as i8)
 }
 
 #[cfg(test)]
 mod tests {
+    use jiff::civil;
+
     use super::*;
-    use crate::time::date;
 
     #[test]
     fn test_dcos() {
@@ -148,36 +144,36 @@ mod tests {
     }
     #[test]
     fn test_hijri_to_julian() -> Result<(), crate::Error> {
-        assert_eq!(hijri_to_julian(date(1442, 8, 25)?), 2459313);
-        assert_eq!(hijri_to_julian(date(333, 1, 27)?), 2066116);
-        assert_eq!(hijri_to_julian(date(1, 1, 27)?), 1948466);
+        assert_eq!(hijri_to_julian(civil::date(1442, 8, 25)), 2459313);
+        assert_eq!(hijri_to_julian(civil::date(333, 1, 27)), 2066116);
+        assert_eq!(hijri_to_julian(civil::date(1, 1, 27)), 1948466);
         Ok(())
     }
     #[test]
     fn test_georgian_to_julian() -> Result<(), crate::Error> {
         assert_eq!(
-            gregorian_to_julian(date(1957, 10, 4)?),
+            gregorian_to_julian(civil::date(1957, 10, 4)),
             2436115.5 // python version: 2436116.31
         );
         assert_eq!(
-            gregorian_to_julian(date(333, 1, 27)?),
+            gregorian_to_julian(civil::date(333, 1, 27)),
             1842712.5 // python version: 1842713.0
         );
         assert_eq!(
-            gregorian_to_julian(date(2000, 1, 1)?),
+            gregorian_to_julian(civil::date(2000, 1, 1)),
             2451544.5 // python version: 2451545.0
         );
         Ok(())
     }
     #[test]
     fn test_julian_to_hijri() {
-        assert_eq!(julian_to_hijri(2459313, 0), (1442, 8, 25));
-        assert_eq!(julian_to_hijri(2066116, 0), (333, 1, 27));
-        assert_eq!(julian_to_hijri(1948466, 0), (1, 1, 27));
+        assert_eq!(julian_to_hijri(2459313, 0), civil::date(1442, 8, 25));
+        assert_eq!(julian_to_hijri(2066116, 0), civil::date(333, 1, 27));
+        assert_eq!(julian_to_hijri(1948466, 0), civil::date(1, 1, 27));
     }
     #[test]
     fn test_julian_to_gregorian() {
-        assert_eq!(julian_to_gregorian(2459313.0), (2021, 4, 13));
-        assert_eq!(julian_to_gregorian(2415020.5), (1900, 1, 5));
+        assert_eq!(julian_to_gregorian(2459313.0), civil::date(2021, 4, 13));
+        assert_eq!(julian_to_gregorian(2415020.5), civil::date(1900, 1, 5));
     }
 }

@@ -1,5 +1,3 @@
-use chrono::Timelike;
-
 use islam::salah::{Config, Location, Madhab, Method, PrayerSchedule};
 
 fn example() -> Result<(), islam::Error> {
@@ -12,7 +10,7 @@ fn example() -> Result<(), islam::Error> {
     // .on(now)?
     // .with_config(config)
     // ```
-    let prayer_times = PrayerSchedule::new(central_jakarta)?
+    let prayer_times = PrayerSchedule::new(central_jakarta)
         .with_config(config)
         .calculate()?;
 
@@ -61,7 +59,7 @@ fn example() -> Result<(), islam::Error> {
     println!("\nCurrent Prayer");
     println!(
         "{}: ({:02}:{:02} left)",
-        current_prayer.name()?,
+        current_prayer.name(),
         hour,
         minute
     );
@@ -69,8 +67,8 @@ fn example() -> Result<(), islam::Error> {
     println!("\nNext Prayer");
     let next_prayer = prayer_times.next();
     let time = prayer_times.time(next_prayer);
-    let time = time.format("%H:%M").to_string();
-    println!("{}: ({})", next_prayer.name()?, time);
+    let time = time.strftime("%H:%M").to_string();
+    println!("{}: ({})", next_prayer.name(), time);
 
     Ok(())
 }

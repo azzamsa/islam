@@ -1,13 +1,11 @@
-use chrono::{Datelike, NaiveDate};
-
 use islam::hijri::HijriDate;
+use islam::jiff;
 
 fn example() -> Result<(), islam::Error> {
     let hijri_date = HijriDate::new(1442, 8, 25)?;
-    let tomorrow = hijri_date.clone().next_date()?;
-    let gregorian = hijri_date.to_gregorian()?;
-    let date = NaiveDate::from_ymd_opt(2021, 4, 9)
-        .ok_or(islam::Error::InvalidArgument("Invalid time".to_string()))?;
+    let tomorrow = hijri_date.clone().next_date();
+    let gregorian = hijri_date.to_gregorian();
+    let date = jiff::civil::date(2021, 4, 9);
     let from_gregorian = HijriDate::from_gregorian(date, 0);
     let from_julian = HijriDate::from_julian(2459313, 0);
 

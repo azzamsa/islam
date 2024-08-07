@@ -1,15 +1,9 @@
-use chrono::{Local, NaiveDate};
+use jiff::{self, civil, Zoned};
 
-use crate::{Date, DateTime};
-
-pub fn now() -> DateTime {
-    Local::now().naive_local()
+pub fn now() -> jiff::Zoned {
+    Zoned::now()
 }
 
-pub fn today() -> Date {
-    Local::now().date_naive()
-}
-
-pub fn date(year: i32, month: u32, day: u32) -> Result<Date, crate::Error> {
-    NaiveDate::from_ymd_opt(year, month, day).ok_or(crate::Error::InvalidTime)
+pub fn today() -> civil::Date {
+    Zoned::now().date()
 }

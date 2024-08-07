@@ -1,11 +1,11 @@
 use std::f32::consts::PI;
 
-use chrono::{Datelike, Duration, Local};
+use jiff::{civil, ToSpan, Unit};
 
 use crate::{
     hijri::{cal, HijriDate},
     salah::{config::Config, prayer::Prayer},
-    time, Date, DateTime,
+    time,
 };
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -25,29 +25,29 @@ impl Location {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct PrayerSchedule {
     location: Location,
-    time: DateTime,
-    custom_time: Option<DateTime>,
+    time: civil::DateTime,
+    custom_time: Option<civil::DateTime>,
     config: Config,
 }
 
 impl PrayerSchedule {
-    pub fn new(location: Location) -> Result<Self, crate::Error> {
-        Ok(Self {
+    pub fn new(location: Location) -> Self {
+        Self {
             location,
-            time: time::now(),
+            time: time::now().into(),
             custom_time: None,
             // default config
             config: Config::new(),
-        })
+        }
     }
-    pub fn on(mut self, date: Date) -> Result<Self, crate::Error> {
-        self.time = date.and_hms_opt(0, 0, 0).ok_or(crate::Error::InvalidTime)?;
+    pub fn on(mut self, date: civil::Date) -> Result<Self, crate::Error> {
+        self.time = date.at(0, 0, 0, 0);
         Ok(self)
     }
-    pub const fn at(mut self, time: DateTime) -> Self {
+    pub const fn at(mut self, time: civil::DateTime) -> Self {
         self.custom_time = Some(time);
         self
     }
@@ -62,28 +62,28 @@ impl PrayerSchedule {
 
 #[derive(Debug, Copy, Clone)]
 pub struct PrayerTimes {
-    custom_time: Option<DateTime>,
-    pub time: DateTime,
+    custom_time: Option<civil::DateTime>,
+    pub time: civil::DateTime,
     pub location: Location,
     pub config: Config,
-    pub dohr: DateTime,
-    pub asr: DateTime,
-    pub maghreb: DateTime,
-    pub ishaa: DateTime,
-    pub fajr: DateTime,
-    pub fajr_tomorrow: DateTime,
-    pub sherook: DateTime,
-    pub first_third_of_night: DateTime,
-    pub midnight: DateTime,
-    pub last_third_of_night: DateTime,
+    pub dohr: civil::DateTime,
+    pub asr: civil::DateTime,
+    pub maghreb: civil::DateTime,
+    pub ishaa: civil::DateTime,
+    pub fajr: civil::DateTime,
+    pub fajr_tomorrow: civil::DateTime,
+    pub sherook: civil::DateTime,
+    pub first_third_of_night: civil::DateTime,
+    pub midnight: civil::DateTime,
+    pub last_third_of_night: civil::DateTime,
 }
 
 impl PrayerTimes {
     pub fn new(
-        time: DateTime,
+        time: civil::DateTime,
         location: Location,
         config: Config,
-        custom_time: Option<DateTime>,
+        custom_time: Option<civil::DateTime>,
     ) -> Result<Self, crate::Error> {
         let time = match custom_time {
             None => time,
@@ -92,37 +92,37 @@ impl PrayerTimes {
 
         // dohr time must be calculated at first, every other time depends on it!
         let dohr_time = Self::dohr(time, location)?;
-        let dohr = Self::hours_to_time(time, dohr_time, 0.0, config)?;
+        let dohr = Self::hours_to_time(time, dohr_time, 0.0, config);
 
         let asr_time = Self::asr(time, location, config)?;
-        let asr = Self::hours_to_time(time, asr_time, 0.0, config)?;
+        let asr = Self::hours_to_time(time, asr_time, 0.0, config);
 
         let maghreb_time = Self::maghreb(time, location, config)?;
-        let maghreb = Self::hours_to_time(time, maghreb_time, 0.0, config)?;
+        let maghreb = Self::hours_to_time(time, maghreb_time, 0.0, config);
 
         let ishaa_time = Self::ishaa(time, location, config)?;
-        let ishaa = Self::hours_to_time(time, ishaa_time, 0.0, config)?;
+        let ishaa = Self::hours_to_time(time, ishaa_time, 0.0, config);
 
         let fajr_time = Self::fajr(time, location, config)?;
-        let fajr = Self::hours_to_time(time, fajr_time, 0.0, config)?;
+        let fajr = Self::hours_to_time(time, fajr_time, 0.0, config);
 
         let sherook_time = Self::sherook(time, location, config)?;
-        let sherook = Self::hours_to_time(time, sherook_time, 0.0, config)?;
+        let sherook = Self::hours_to_time(time, sherook_time, 0.0, config);
 
         // These must be called after ishaa, since they depends on it
         let first_third_of_night_time = Self::first_third_of_night(time, location, config)?;
         let first_third_of_night =
-            Self::hours_to_time(time, first_third_of_night_time, 0.0, config)?;
+            Self::hours_to_time(time, first_third_of_night_time, 0.0, config);
 
         let midnight_time = Self::midnight(time, location, config)?;
-        let midnight = Self::hours_to_time(time, midnight_time, 0.0, config)?;
+        let midnight = Self::hours_to_time(time, midnight_time, 0.0, config);
 
         let last_third_of_night_time = Self::last_third_of_night(time, location, config)?;
-        let last_third_of_night = Self::hours_to_time(time, last_third_of_night_time, 0.0, config)?;
+        let last_third_of_night = Self::hours_to_time(time, last_third_of_night_time, 0.0, config);
 
-        let tomorrow = time + Duration::days(1);
+        let tomorrow = time + 1.days();
         let fajr_time_tomorrow = Self::fajr(tomorrow, location, config)?;
-        let fajr_tomorrow = Self::hours_to_time(tomorrow, fajr_time_tomorrow, 0.0, config)?;
+        let fajr_tomorrow = Self::hours_to_time(tomorrow, fajr_time_tomorrow, 0.0, config);
 
         Ok(Self {
             custom_time,
@@ -142,28 +142,36 @@ impl PrayerTimes {
         })
     }
     /// Get the Dohr
-    fn dohr(time: DateTime, location: Location) -> Result<f32, crate::Error> {
+    fn dohr(time: civil::DateTime, location: Location) -> Result<f32, crate::Error> {
         let longitude_difference = Self::longitude_difference(location)?;
 
-        let julian_day = cal::gregorian_to_julian(time.date());
-        let time_equation = cal::equation_of_time(julian_day);
+        let julian_date = cal::gregorian_to_julian(time.date());
+        let time_equation = cal::equation_of_time(julian_date);
         Ok((12.0 + longitude_difference) + (time_equation / 60.0))
     }
     /// Get the Asr time
-    fn asr(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+    fn asr(time: civil::DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(time, location)?;
         let angle = Self::asr_angle(time, location, config)?;
         Ok(dohr_time + Self::time_for_angle(angle, time, location)?)
     }
     /// Get the Maghreb time
-    fn maghreb(time: DateTime, location: Location, _config: Config) -> Result<f32, crate::Error> {
+    fn maghreb(
+        time: civil::DateTime,
+        location: Location,
+        _config: Config,
+    ) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(time, location)?;
 
         let angle = 90.83333; // constants
         Ok(dohr_time + Self::time_for_angle(angle, time, location)?)
     }
     /// Get the Ishaa time
-    fn ishaa(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+    fn ishaa(
+        time: civil::DateTime,
+        location: Location,
+        config: Config,
+    ) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(time, location)?;
 
         // checking one of `all_year` or `ramadan` is enough
@@ -189,7 +197,11 @@ impl PrayerTimes {
         }
     }
     /// Get the Fajr time
-    fn fajr(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+    fn fajr(
+        time: civil::DateTime,
+        location: Location,
+        config: Config,
+    ) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(time, location)?;
         // NOTE (upstream) wrong if-else?
         // let angle = if config.method == Method::FixedInterval {
@@ -201,7 +213,11 @@ impl PrayerTimes {
         Ok(dohr_time - Self::time_for_angle(angle, time, location)?)
     }
     /// Get the Sherook time
-    fn sherook(time: DateTime, location: Location, _config: Config) -> Result<f32, crate::Error> {
+    fn sherook(
+        time: civil::DateTime,
+        location: Location,
+        _config: Config,
+    ) -> Result<f32, crate::Error> {
         let dohr_time = Self::dohr(time, location)?;
 
         let angle = 90.83333;
@@ -209,7 +225,7 @@ impl PrayerTimes {
     }
     /// Get the third of night
     fn first_third_of_night(
-        time: DateTime,
+        time: civil::DateTime,
         location: Location,
         config: Config,
     ) -> Result<f32, crate::Error> {
@@ -219,14 +235,18 @@ impl PrayerTimes {
     }
     /// Midnight is the exact time between sunrise (Shorook) and sunset (Maghreb),
     /// It defines usually the end of Ishaa time
-    fn midnight(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+    fn midnight(
+        time: civil::DateTime,
+        location: Location,
+        config: Config,
+    ) -> Result<f32, crate::Error> {
         let maghreb_time = Self::maghreb(time, location, config)?;
         let fajr_time = Self::fajr(time, location, config)?;
         Ok(maghreb_time + (24.0 - (maghreb_time - fajr_time)) / 2.0)
     }
     /// Qiyam time starts after Ishaa directly, however, the best time for Qiyam is the last third of night
     fn last_third_of_night(
-        time: DateTime,
+        time: civil::DateTime,
         location: Location,
         config: Config,
     ) -> Result<f32, crate::Error> {
@@ -237,28 +257,35 @@ impl PrayerTimes {
     }
     /// Convert a decimal value (in hours) to time object
     fn hours_to_time(
-        time: DateTime,
+        time: civil::DateTime,
         val: f32,
         shift: f32,
         config: Config,
-    ) -> Result<DateTime, crate::Error> {
+    ) -> civil::DateTime {
         let is_summer = i32::from(config.is_summer);
         let hour = val + (shift / 3600.0);
         let minute = (hour - (hour).floor()) * 60.0;
         let second = (minute - (minute).floor()) * 60.0;
         let hour = (hour + is_summer as f32).floor() % 24.0;
-        time::date(time.year(), time.month(), time.day())?
-            .and_hms_opt(hour as u32, minute as u32, second as u32)
-            .ok_or(crate::Error::InvalidTime)
+        civil::date(time.year(), time.month(), time.day()).at(
+            hour as i8,
+            minute as i8,
+            second as i8,
+            0,
+        )
     }
     fn longitude_difference(location: Location) -> Result<f32, crate::Error> {
-        let offset_second = Local::now().offset().local_minus_utc();
-        let offset_hour = Duration::seconds(offset_second.into()).num_hours();
+        let offset = jiff::Zoned::now().offset().seconds();
+        let offset_hour = offset.seconds().total(Unit::Hour)?;
         let middle_longitude = offset_hour as f32 * 15.0;
         Ok((middle_longitude - location.longitude) / 15.0)
     }
     /// Get the angle angle for asr (according to chosen madhab)
-    fn asr_angle(time: DateTime, location: Location, config: Config) -> Result<f32, crate::Error> {
+    fn asr_angle(
+        time: civil::DateTime,
+        location: Location,
+        config: Config,
+    ) -> Result<f32, crate::Error> {
         let delta = Self::sun_declination(time)?;
         let x = cal::dsin(location.latitude).mul_add(
             cal::dsin(delta),
@@ -269,16 +296,20 @@ impl PrayerTimes {
         Ok(90.0 - (180.0 / PI) * 2.0_f32.mul_add((1.0_f32).atan(), (x).atan()))
     }
     /// Get Times for "Fajr, Sherook, Asr, Maghreb, ishaa"
-    fn time_for_angle(angle: f32, time: DateTime, location: Location) -> Result<f32, crate::Error> {
+    fn time_for_angle(
+        angle: f32,
+        time: civil::DateTime,
+        location: Location,
+    ) -> Result<f32, crate::Error> {
         let delta = Self::sun_declination(time)?;
         let s = (cal::dcos(angle) - cal::dsin(location.latitude) * cal::dsin(delta))
             / (cal::dcos(location.latitude) * cal::dcos(delta));
         Ok((180.0 / PI * ((-s / (-s).mul_add(s, 1.0).sqrt()).atan() + PI / 2.0)) / 15.0)
     }
     /// Get sun declination
-    fn sun_declination(time: DateTime) -> Result<f32, crate::Error> {
-        let julian_day = cal::gregorian_to_julian(time.date());
-        let n = julian_day - 2_451_544.5;
+    fn sun_declination(time: civil::DateTime) -> Result<f32, crate::Error> {
+        let julian_date = cal::gregorian_to_julian(time.date());
+        let n = julian_date - 2_451_544.5;
         let epsilon = 23.44 - (0.000_000_4 * n);
         let l = 0.985_647_4_f32.mul_add(n, 280.466);
         let g = 0.985_600_3_f32.mul_add(n, 357.528);
@@ -292,13 +323,13 @@ impl PrayerTimes {
 
         // Special case if the next prayer time is on the following day
         if self.next() == Prayer::FajrTomorrow && self.is_after_midnight() {
-            now += Duration::days(1);
+            now += 1.days()
         }
 
         let next_prayer_time = self.time(self.next());
         let duration = next_prayer_time - now;
 
-        let whole: f64 = duration.num_seconds() as f64 / 60.0 / 60.0;
+        let whole: f64 = duration.total(Unit::Second).unwrap() / 60.0 / 60.0;
         let fract = whole.fract();
         let hours = whole.trunc() as u32;
         let minutes = (fract * 60.0).round() as u32;
@@ -324,7 +355,7 @@ impl PrayerTimes {
         }
     }
     /// Get prayer's time
-    pub fn time(&self, prayer: Prayer) -> DateTime {
+    pub fn time(&self, prayer: Prayer) -> civil::DateTime {
         match prayer {
             Prayer::Fajr => self.fajr,
             Prayer::Sherook => self.sherook,
@@ -338,13 +369,13 @@ impl PrayerTimes {
     /// Get current prayer
     pub fn current(&self) -> Prayer {
         let now = match self.custom_time {
-            None => time::now(),
+            None => time::now().into(),
             Some(custom) => custom,
         };
         self.current_time(now).expect("Out of bounds")
     }
     /// Helper function for `current`
-    fn current_time(&self, time: DateTime) -> Option<Prayer> {
+    fn current_time(&self, time: civil::DateTime) -> Option<Prayer> {
         let mut current_prayer: Option<Prayer> = None;
 
         let ranges = vec![
@@ -375,9 +406,9 @@ impl PrayerTimes {
     }
     /// Get the current time
     /// It can be real current time or user specified time
-    fn now(&self) -> DateTime {
+    fn now(&self) -> civil::DateTime {
         match self.custom_time {
-            None => time::now(),
+            None => time::now().into(),
             Some(custom) => custom,
         }
     }
@@ -387,10 +418,9 @@ impl PrayerTimes {
 mod tests {
     use super::*;
     use crate::salah::{madhab::Madhab, method::Method};
-    use crate::time;
 
-    fn date() -> Result<Date, crate::Error> {
-        time::date(2023, 8, 30)
+    fn date() -> civil::Date {
+        civil::date(2023, 8, 30)
     }
     /// Central jakarta
     fn city() -> Location {
@@ -403,32 +433,28 @@ mod tests {
         Config::new().with(Method::Singapore, Madhab::Shafi)
     }
     fn prayer_times() -> Result<PrayerTimes, crate::Error> {
-        let prayer_times = PrayerSchedule::new(city())?
+        let prayer_times = PrayerSchedule::new(city())
             .with_config(config())
             .calculate()?;
         Ok(prayer_times)
     }
     fn prayer_times_on() -> Result<PrayerTimes, crate::Error> {
-        let prayer_times = PrayerSchedule::new(city())?
-            .on(date()?)?
+        let prayer_times = PrayerSchedule::new(city())
+            .on(date())?
             .with_config(config())
             .calculate()?;
         Ok(prayer_times)
     }
-    fn prayer_times_at(time: (u32, u32, u32)) -> Result<PrayerTimes, crate::Error> {
-        let time = date()?
-            .and_hms_opt(time.0, time.1, time.2)
-            .ok_or(crate::Error::InvalidTime)?;
-        let prayer_times = PrayerSchedule::new(city())?
+    fn prayer_times_at(time: (i8, i8, i8)) -> Result<PrayerTimes, crate::Error> {
+        let time = date().at(time.0, time.1, time.2, 0);
+        let prayer_times = PrayerSchedule::new(city())
             .at(time)
             .with_config(config())
             .calculate()?;
         Ok(prayer_times)
     }
-    fn expected_time(hour: u32, minute: u32, second: u32) -> Result<DateTime, crate::Error> {
-        let date = date()?;
-        date.and_hms_opt(hour, minute, second)
-            .ok_or(crate::Error::InvalidTime)
+    fn expected_time(hour: i8, minute: i8, second: i8) -> civil::DateTime {
+        date().at(hour, minute, second, 0)
     }
     #[test]
     /// Tested against https://www.jadwalsholat.org/
@@ -462,56 +488,56 @@ mod tests {
         // ishaa        : 2023-08-30 19:12:17
         // fajr tomorrow: 2023-08-31 04:29:07
 
-        assert_eq!(prayer_times.fajr, expected_time(4, 29, 10)?);
-        assert_eq!(prayer_times.sherook, expected_time(5, 47, 34)?);
-        assert_eq!(prayer_times.dohr, expected_time(11, 54, 50)?);
-        assert_eq!(prayer_times.asr, expected_time(15, 1, 51)?);
-        assert_eq!(prayer_times.maghreb, expected_time(18, 2, 6)?);
-        assert_eq!(prayer_times.ishaa, expected_time(19, 12, 17)?);
+        assert_eq!(prayer_times.fajr, expected_time(4, 29, 10));
+        assert_eq!(prayer_times.sherook, expected_time(5, 47, 34));
+        assert_eq!(prayer_times.dohr, expected_time(11, 54, 50));
+        assert_eq!(prayer_times.asr, expected_time(15, 1, 51));
+        assert_eq!(prayer_times.maghreb, expected_time(18, 2, 6));
+        assert_eq!(prayer_times.ishaa, expected_time(19, 12, 17));
         Ok(())
     }
     #[test]
     fn current_prayers() -> Result<(), crate::Error> {
         let prayer_times = prayer_times_on()?;
 
-        let current_prayer_time = expected_time(4, 30, 00)?;
+        let current_prayer_time = expected_time(4, 30, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Fajr)
         );
 
-        let current_prayer_time = expected_time(5, 48, 00)?;
+        let current_prayer_time = expected_time(5, 48, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Sherook)
         );
 
-        let current_prayer_time = expected_time(11, 55, 00)?;
+        let current_prayer_time = expected_time(11, 55, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Dohr)
         );
 
-        let current_prayer_time = expected_time(15, 2, 00)?;
+        let current_prayer_time = expected_time(15, 2, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Asr)
         );
 
-        let current_prayer_time = expected_time(18, 3, 00)?;
+        let current_prayer_time = expected_time(18, 3, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Maghreb)
         );
 
-        let current_prayer_time = expected_time(19, 13, 00)?;
+        let current_prayer_time = expected_time(19, 13, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Ishaa)
         );
 
         // Current prayer is ishaa (after midnight/early moring, before fajr)
-        let current_prayer_time = expected_time(4, 29, 00)?;
+        let current_prayer_time = expected_time(4, 29, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Ishaa)
