@@ -1,6 +1,6 @@
 [package]
 name = "islam"
-version = "4.0.0"
+version = "4.0.1"
 authors = ["azzamsa <me@azzamsa.com>"]
 categories = ["date-and-time", "science"]
 edition = "2021"
