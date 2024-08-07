@@ -65,7 +65,7 @@ _doc-check:
 
 [doc('Prepare release hooks')]
 _release-prepare version:
-    git-cliff --config configs/cliff.toml --output CHANGELOG.md --tag {{ version }}
+    git-cliff --config .cliff.toml --output CHANGELOG.md --tag {{ version }}
     just fmt
 
 [doc('Check dependencies health. Pass `--write` to upgrade dependencies')]
