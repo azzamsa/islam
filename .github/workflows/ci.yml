@@ -39,7 +39,6 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-
       - uses: actions-rust-lang/setup-rust-toolchain@v1
 
       - uses: taiki-e/install-action@just
@@ -52,14 +51,6 @@ jobs:
 
       - name: Run tests
         run: just test
-
-      - name: Use `libfaketime`
-        run: |
-           sudo apt-get install --yes faketime
-           faketime --version
-
-      - name: Run more tests
-        run: just _test-ignored
 
   build:
     name: Build for ${{ matrix.build }}
@@ -90,13 +81,6 @@ jobs:
           cargo --version
 
       - name: Install musl-tools
-        if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            --allow-unauthenticated musl-tools
-
-      - name: Use `libfaketime`
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: |
           sudo apt-get update

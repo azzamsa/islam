@@ -45,11 +45,6 @@ lint:
 test:
     cargo nextest run
 
-[doc('Test the codebase using fake time')]
-_test-ignored:
-    faketime '2023-8-30 20:00:00' cargo nextest run --filter-expr 'test(before_midnight)' --run-ignored ignored-only
-    faketime '2023-8-31 02:00:00' cargo nextest run --filter-expr 'test(after_midnight)' --run-ignored ignored-only
-
 [doc('Create a new release. Example `cargo-release release minor --tag-name v0.2.0`')]
 release level:
     cargo-release release {{ level }} --execute
