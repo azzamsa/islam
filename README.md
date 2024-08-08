@@ -37,7 +37,6 @@ So here it is, `islam` is born!
 ### Getting Prayer Times
 
 ```rust
-use chrono::Local;
 use islam::salah::{Config, Location, Madhab, Method, PrayerSchedule};
 
 let central_jakarta = Location::new(6.1, 106.49);
