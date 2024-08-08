@@ -62,6 +62,7 @@ release-check level: check
 [doc('Check the documentation')]
 _doc-check:
     cargo doc --all-features --no-deps
+    cargo test --doc
 
 [doc('Prepare release hooks')]
 _release-prepare version:
