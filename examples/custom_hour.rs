@@ -6,7 +6,7 @@ fn custom_hour() -> Result<(), islam::Error> {
     let config = Config::new().with(Method::Singapore, Madhab::Shafi);
     let now = jiff::civil::date(2023, 8, 30)
         // Current prayer is ishaa (before midnight)
-        // .and_hms_opt(20, 28, 00)
+        // .at(20, 28, 00, 0);
         // Current prayer is ishaa (after midnight/early moring, before fajr)
         .at(4, 28, 00, 0);
     let prayer_times = PrayerSchedule::new(central_jakarta)
