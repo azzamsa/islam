@@ -432,12 +432,6 @@ mod tests {
         // JadwalSholat is also using Shafi as the madhab, `20.0 deg` for fajs angle, and `18.0 deg` for Ishaa angle.
         Config::new().with(Method::Singapore, Madhab::Shafi)
     }
-    fn prayer_times() -> Result<PrayerTimes, crate::Error> {
-        let prayer_times = PrayerSchedule::new(city())
-            .with_config(config())
-            .calculate()?;
-        Ok(prayer_times)
-    }
     fn prayer_times_on() -> Result<PrayerTimes, crate::Error> {
         let prayer_times = PrayerSchedule::new(city())
             .on(date())?
@@ -595,20 +589,24 @@ mod tests {
         Ok(())
     }
     #[test]
-    #[ignore = "depends on libfaketime"]
     fn before_midnight() -> Result<(), crate::Error> {
-        //  faketime '2023-8-30 20:00:00'
-        let prayer_times = prayer_times()?;
+        let time = date().at(20, 0, 0, 0);
+        let prayer_times = PrayerSchedule::new(city())
+            .at(time)
+            .with_config(config())
+            .calculate()?;
         assert_eq!(prayer_times.current(), Prayer::Ishaa);
         assert_eq!(prayer_times.next(), Prayer::FajrTomorrow);
         assert_eq!(prayer_times.time_remaining(), (8, 29));
         Ok(())
     }
     #[test]
-    #[ignore = "depends on libfaketime"]
     fn after_midnight() -> Result<(), crate::Error> {
-        //  faketime '2023-8-31 02:00:00'
-        let prayer_times = prayer_times()?;
+        let time = civil::date(2023, 8, 31).at(2, 0, 0, 0);
+        let prayer_times = PrayerSchedule::new(city())
+            .at(time)
+            .with_config(config())
+            .calculate()?;
         assert_eq!(prayer_times.current(), Prayer::Ishaa);
         assert_eq!(prayer_times.next(), Prayer::Fajr);
         assert_eq!(prayer_times.time_remaining(), (2, 29));
