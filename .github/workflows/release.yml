@@ -72,10 +72,9 @@ jobs:
         run: |
           echo "PROJECT_NAME=${{ env.PROJECT_NAME }}" >> $GITHUB_ENV
 
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          components: clippy, rustfmt
+          target: ${{ matrix.target }}
 
       - name: Create tarball
         id: package
