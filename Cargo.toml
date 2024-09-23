@@ -8,12 +8,12 @@ keywords = ["salah", "pray", "islam", "hijri"]
 license = "GPL-3.0-only"
 readme = "README.md"
 repository = "https://github.com/azzamsa/islam"
-rust-version = "1.80.0"
+rust-version = "1.81.0"
 description = "Islamic library for Rust"
 
 [dependencies]
-jiff = "0.1.4"
-thiserror = "1.0.58"
+jiff = "0.1.13"
+thiserror = "1.0.64"
 
 [package.metadata.release]
 sign-commit = true
