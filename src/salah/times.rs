@@ -1,9 +1,9 @@
 use std::f32::consts::PI;
 
-use jiff::{civil, ToSpan, Unit};
+use jiff::{ToSpan, Unit, civil};
 
 use crate::{
-    hijri::{cal, HijriDate},
+    hijri::{HijriDate, cal},
     salah::{config::Config, prayer::Prayer},
     time,
 };

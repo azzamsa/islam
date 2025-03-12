@@ -3,17 +3,17 @@ name = "islam"
 version = "4.0.2"
 authors = ["azzamsa <me@azzamsa.com>"]
 categories = ["date-and-time", "science"]
-edition = "2021"
+edition = "2024"
 keywords = ["salah", "pray", "islam", "hijri"]
 license = "GPL-3.0-only"
 readme = "README.md"
 repository = "https://github.com/azzamsa/islam"
-rust-version = "1.81.0"
+rust-version = "1.85.0"
 description = "Islamic library for Rust"
 
 [dependencies]
-jiff = "0.1.13"
-thiserror = "1.0.64"
+jiff = "0.2.4"
+thiserror = "2.0.12"
 
 [package.metadata.release]
 sign-commit = true
