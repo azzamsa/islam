@@ -267,12 +267,13 @@ impl PrayerTimes {
         let minute = (hour - (hour).floor()) * 60.0;
         let second = (minute - (minute).floor()) * 60.0;
         let hour = (hour + is_summer as f32).floor() % 24.0;
-        civil::date(time.year(), time.month(), time.day()).at(
+        let time = civil::date(time.year(), time.month(), time.day()).at(
             hour as i8,
             minute as i8,
             second as i8,
             0,
-        )
+        );
+        time.round(Unit::Minute).unwrap()
     }
     fn longitude_difference(location: Location) -> Result<f32, crate::Error> {
         let offset = jiff::Zoned::now().offset().seconds();
@@ -420,13 +421,13 @@ mod tests {
     use crate::salah::{madhab::Madhab, method::Method};
 
     fn date() -> civil::Date {
-        civil::date(2023, 8, 30)
+        civil::date(2025, 3, 12)
     }
     /// Central jakarta
     fn city() -> Location {
         // Latitude and longitude is taken from https://www.jadwalsholat.org/
         // > Untuk Kota Jakarta Pusat 6°10' LS 106°49' BT
-        Location::new(6.10, 106.49)
+        Location::new(-6.10, 106.49)
     }
     fn config() -> Config {
         // JadwalSholat is also using Shafi as the madhab, `20.0 deg` for fajs angle, and `18.0 deg` for Ishaa angle.
@@ -455,83 +456,73 @@ mod tests {
     /// and the result is pretty accurate
     fn praytimes_jakarta() -> Result<(), crate::Error> {
         let prayer_times = prayer_times_on()?;
-        // jadwalsholat.org 🔵
-        // All the jadwalsholat.org iktiyati (additional 2 minutes) is stripped
-        // fajr: 4:37
-        // sheerook: 5:51
-        // dohr: 11:54
-        // asr: 15:13
-        // maghreb: 17:53
-        // ishaa: 19:03
+        // jadwalsholat.org
+        // All the jadwalsholat.org times are contains iktiyati (additional 2 minutes)
+        // Fajr: 04:42 AM
+        // Sherook: 05:56 AM
+        // Dohr: 12:05 PM
+        // Asr: 03:10 PM
+        // Mghreb: 06:10 PM
+        // Ishaa: 07:19 PM
 
-        // pyislam.py 🔷
-        // Fajr      : 04:29:10
-        // Sherook   : 05:47:34
-        // Dohr      : 11:54:50
-        // Asr       : 15:01:51
-        // Maghreb   : 18:02:06
-        // Ishaa     : 19:12:17
+        // islam.rs
+        // Fajr: 04:42 AM -- same
+        // Sherook: 05:59 AM -- +3
+        // Dohr: 12:04 PM -- -1
+        // Asr: 03:10 PM -- same
+        // Mghreb: 06:09 PM -- -1
+        // Ishaa: 07:18 PM -- -1
 
-        // islam.rs 🟦
-        // fajr    : 4:29:10
-        // sherook : 5:47:34
-        // dohr    : 11:54:50
-        // asr     : 15:1:51
-        // maghreb : 18:2:6
-        // ishaa   : 19:12:17
-        // ishaa        : 2023-08-30 19:12:17
-        // fajr tomorrow: 2023-08-31 04:29:07
-
-        assert_eq!(prayer_times.fajr, expected_time(4, 29, 10));
-        assert_eq!(prayer_times.sherook, expected_time(5, 47, 34));
-        assert_eq!(prayer_times.dohr, expected_time(11, 54, 50));
-        assert_eq!(prayer_times.asr, expected_time(15, 1, 51));
-        assert_eq!(prayer_times.maghreb, expected_time(18, 2, 6));
-        assert_eq!(prayer_times.ishaa, expected_time(19, 12, 17));
+        assert_eq!(prayer_times.fajr, expected_time(4, 42, 00));
+        assert_eq!(prayer_times.sherook, expected_time(5, 59, 00));
+        assert_eq!(prayer_times.dohr, expected_time(12, 4, 00));
+        assert_eq!(prayer_times.asr, expected_time(15, 10, 00));
+        assert_eq!(prayer_times.maghreb, expected_time(18, 9, 00));
+        assert_eq!(prayer_times.ishaa, expected_time(19, 18, 00));
         Ok(())
     }
     #[test]
     fn current_prayers() -> Result<(), crate::Error> {
         let prayer_times = prayer_times_on()?;
 
-        let current_prayer_time = expected_time(4, 30, 00);
+        let current_prayer_time = expected_time(4, 42, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Fajr)
         );
 
-        let current_prayer_time = expected_time(5, 48, 00);
+        let current_prayer_time = expected_time(5, 59, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Sherook)
         );
 
-        let current_prayer_time = expected_time(11, 55, 00);
+        let current_prayer_time = expected_time(12, 4, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Dohr)
         );
 
-        let current_prayer_time = expected_time(15, 2, 00);
+        let current_prayer_time = expected_time(15, 10, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Asr)
         );
 
-        let current_prayer_time = expected_time(18, 3, 00);
+        let current_prayer_time = expected_time(18, 9, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Maghreb)
         );
 
-        let current_prayer_time = expected_time(19, 13, 00);
+        let current_prayer_time = expected_time(19, 18, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Ishaa)
         );
 
         // Current prayer is ishaa (after midnight/early moring, before fajr)
-        let current_prayer_time = expected_time(4, 29, 00);
+        let current_prayer_time = expected_time(4, 41, 00);
         assert_eq!(
             prayer_times.current_time(current_prayer_time),
             Some(Prayer::Ishaa)
@@ -552,39 +543,39 @@ mod tests {
     #[test]
     fn remaining_time() -> Result<(), crate::Error> {
         // Right after Fajr
-        let prayer_times = prayer_times_at((4, 30, 0))?;
+        let prayer_times = prayer_times_at((4, 42, 0))?;
         assert_eq!(prayer_times.current(), Prayer::Fajr);
-        assert_eq!(prayer_times.time_remaining(), (1, 18));
+        assert_eq!(prayer_times.time_remaining(), (1, 17));
 
         // 2 minutes before Sherook
-        let prayer_times = prayer_times_at((5, 46, 0))?;
+        let prayer_times = prayer_times_at((5, 57, 0))?;
         assert_eq!(prayer_times.current(), Prayer::Fajr);
         assert_eq!(prayer_times.time_remaining(), (0, 2));
 
         // 2 minutes before Asr
-        let prayer_times = prayer_times_at((15, 0, 0))?;
+        let prayer_times = prayer_times_at((15, 8, 0))?;
         assert_eq!(prayer_times.current(), Prayer::Dohr);
         assert_eq!(prayer_times.time_remaining(), (0, 2));
 
         // 2 minutes before Maghreb
-        let prayer_times = prayer_times_at((18, 0, 0))?;
+        let prayer_times = prayer_times_at((18, 7, 0))?;
         assert_eq!(prayer_times.current(), Prayer::Asr);
         assert_eq!(prayer_times.time_remaining(), (0, 2));
 
         // 2 minutes before Ishaa
-        let prayer_times = prayer_times_at((19, 10, 0))?;
+        let prayer_times = prayer_times_at((19, 16, 0))?;
         assert_eq!(prayer_times.current(), Prayer::Maghreb);
         assert_eq!(prayer_times.time_remaining(), (0, 2));
 
         // Current prayer is ishaa (before midnight)
         let prayer_times = prayer_times_at((20, 00, 0))?;
         assert_eq!(prayer_times.current(), Prayer::Ishaa);
-        assert_eq!(prayer_times.time_remaining(), (8, 29));
+        assert_eq!(prayer_times.time_remaining(), (8, 42));
 
         // Current prayer is ishaa (after midnight)
         let prayer_times = prayer_times_at((4, 27, 0))?;
         assert_eq!(prayer_times.current(), Prayer::Ishaa);
-        assert_eq!(prayer_times.time_remaining(), (0, 2));
+        assert_eq!(prayer_times.time_remaining(), (0, 15));
 
         Ok(())
     }
@@ -597,7 +588,7 @@ mod tests {
             .calculate()?;
         assert_eq!(prayer_times.current(), Prayer::Ishaa);
         assert_eq!(prayer_times.next(), Prayer::FajrTomorrow);
-        assert_eq!(prayer_times.time_remaining(), (8, 29));
+        assert_eq!(prayer_times.time_remaining(), (8, 42));
         Ok(())
     }
     #[test]
@@ -609,7 +600,7 @@ mod tests {
             .calculate()?;
         assert_eq!(prayer_times.current(), Prayer::Ishaa);
         assert_eq!(prayer_times.next(), Prayer::Fajr);
-        assert_eq!(prayer_times.time_remaining(), (2, 29));
+        assert_eq!(prayer_times.time_remaining(), (2, 37));
         Ok(())
     }
 }
