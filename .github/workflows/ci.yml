@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   code_quality:
     name: Code Quality
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
 
   msrv:
     name: Minimum Supported Rust Version
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -64,7 +64,7 @@ jobs:
           - { build: win-gnu,    os: windows-2022, target: x86_64-pc-windows-gnu       }
           - { build: win-msvc,   os: windows-2022, target: x86_64-pc-windows-msvc      }
           - { build: win32-msvc, os: windows-2022, target: i686-pc-windows-msvc        }
-          - { build: macos,      os: macos-12    , target: x86_64-apple-darwin         }
+          - { build: macos,      os: macos-14    , target: x86_64-apple-darwin         }
 
     steps:
       - name: Checkout source code
