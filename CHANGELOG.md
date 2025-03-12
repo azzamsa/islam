@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.0] - 2025-03-12
+
+### Bug fixes
+
+- Improve prayer time accuracy by rounding seconds to the nearest minute ([bc2678f](https://github.com/azzamsa/islam/commit/bc2678f2a825f6a0952b5e1ac8cac485da8458ec))
+
+  This improves accuracy by using [jadwalsholat.org](https://www.jadwalsholat.org/) as a reference.
+
 ## [4.0.0] - 2024-08-07
 
 ### Features
